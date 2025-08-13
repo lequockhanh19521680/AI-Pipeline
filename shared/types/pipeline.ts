@@ -15,8 +15,8 @@ export interface Connection {
   id: string;
   source: string;
   target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
 }
 
 export interface Pipeline {

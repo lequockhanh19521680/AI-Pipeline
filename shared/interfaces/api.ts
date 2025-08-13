@@ -76,7 +76,8 @@ export interface LogEvent {
   message: string;
   timestamp: Date;
   source: string;
+  stage?: string;
 }
 
 // Import shared pipeline types
-import type { MLPipelineConfig, PipelineExecution } from './pipeline.js';
+import type { MLPipelineConfig, PipelineExecution } from '../types/pipeline.js';
