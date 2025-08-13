@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package config;
+
+option go_package = "github.com/lequockhanh19521680/AI-Pipeline/services/config-service/proto";
+
+// ConfigService defines the gRPC service for managing configuration and API keys
+service ConfigService {
+  // CreateAPIKey creates a new API key for a service
+  rpc CreateAPIKey(CreateAPIKeyRequest) returns (CreateAPIKeyResponse);
+  
+  // GetAPIKey retrieves an API key by ID
+  rpc GetAPIKey(GetAPIKeyRequest) returns (GetAPIKeyResponse);
+  
+  // UpdateAPIKey updates an existing API key
+  rpc UpdateAPIKey(UpdateAPIKeyRequest) returns (UpdateAPIKeyResponse);
+  
+  // DeleteAPIKey deletes an API key
+  rpc DeleteAPIKey(DeleteAPIKeyRequest) returns (DeleteAPIKeyResponse);
+  
+  // ListAPIKeys lists all API keys for a service
+  rpc ListAPIKeys(ListAPIKeysRequest) returns (ListAPIKeysResponse);
+}
+
+// CreateAPIKeyRequest represents the request to create a new API key
+message CreateAPIKeyRequest {
+  string service_name = 1;
+  string description = 2;
+  repeated string scopes = 3;
+  int64 expires_at = 4; // Unix timestamp, 0 for no expiration
+}
+
+// CreateAPIKeyResponse represents the response containing the new API key
+message CreateAPIKeyResponse {
+  string key_id = 1;
+  string api_key = 2; // Only returned once during creation
+  int64 created_at = 3;
+}
+
+// GetAPIKeyRequest represents the request to retrieve an API key
+message GetAPIKeyRequest {
+  string key_id = 1;
+}
+
+// GetAPIKeyResponse represents the response containing API key metadata
+message GetAPIKeyResponse {
+  APIKeyMetadata metadata = 1;
+}
+
+// UpdateAPIKeyRequest represents the request to update an API key
+message UpdateAPIKeyRequest {
+  string key_id = 1;
+  string description = 2;
+  repeated string scopes = 3;
+  int64 expires_at = 4;
+}
+
+// UpdateAPIKeyResponse represents the response after updating an API key
+message UpdateAPIKeyResponse {
+  APIKeyMetadata metadata = 1;
+}
+
+// DeleteAPIKeyRequest represents the request to delete an API key
+message DeleteAPIKeyRequest {
+  string key_id = 1;
+}
+
+// DeleteAPIKeyResponse represents the response after deleting an API key
+message DeleteAPIKeyResponse {
+  bool success = 1;
+}
+
+// ListAPIKeysRequest represents the request to list API keys
+message ListAPIKeysRequest {
+  string service_name = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+// ListAPIKeysResponse represents the response containing a list of API keys
+message ListAPIKeysResponse {
+  repeated APIKeyMetadata keys = 1;
+  string next_page_token = 2;
+}
+
+// APIKeyMetadata represents the metadata of an API key (without the actual key)
+message APIKeyMetadata {
+  string key_id = 1;
+  string service_name = 2;
+  string description = 3;
+  repeated string scopes = 4;
+  int64 created_at = 5;
+  int64 expires_at = 6;
+  bool is_active = 7;
+  int64 last_used_at = 8;
+}

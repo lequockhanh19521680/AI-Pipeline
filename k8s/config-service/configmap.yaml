@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-service-config
+  namespace: ai-pipeline
+data:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "9090"
+  VAULT_ADDR: "http://vault:8200"
+  VAULT_MOUNT_PATH: "kv"
+  READ_TIMEOUT: "30"
+  WRITE_TIMEOUT: "30"
