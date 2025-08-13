@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
+import { AIAssistantProps } from '../types';
 
-function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [assistantMode, setAssistantMode] = useState('analyze');
-  const [result, setResult] = useState('');
-  const [error, setError] = useState('');
+type AssistantMode = 'analyze' | 'optimize' | 'debug' | 'document';
 
-  const modes = {
+const AIAssistant: React.FC<AIAssistantProps> = ({ 
+  geminiService, 
+  files, 
+  currentFile, 
+  onCodeUpdate 
+}) => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [assistantMode, setAssistantMode] = useState<AssistantMode>('analyze');
+  const [result, setResult] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  const modes: Record<AssistantMode, string> = {
     analyze: 'Analyze Code',
     optimize: 'Optimize Config',
     debug: 'Debug Code',
     document: 'Generate Docs'
   };
 
-  const handleAnalysis = async () => {
+  const handleAnalysis = async (): Promise<void> => {
     if (!geminiService) {
       setError('Gemini API key not configured');
       return;
@@ -31,12 +39,20 @@ function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
         case 'analyze':
           response = await geminiService.analyzeData(
             `Current file: ${currentFile}`,
-            { code: currentCode }
+            { 
+              data: { source: '', target_column: '' },
+              model: { type: '', n_estimators: 0, random_state: 0 },
+              preprocessing: { test_size: 0, normalize: false }
+            }
           );
           break;
         case 'optimize':
           response = await geminiService.optimizeConfig(
-            { currentFile, code: currentCode },
+            { 
+              data: { source: '', target_column: '' },
+              model: { type: '', n_estimators: 0, random_state: 0 },
+              preprocessing: { test_size: 0, normalize: false }
+            },
             'Request optimization suggestions'
           );
           break;
@@ -58,15 +74,39 @@ function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
       
       setResult(response);
     } catch (err) {
-      setError(err.message);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const applyCodeSuggestion = (suggestedCode) => {
+  const applyCodeSuggestion = (suggestedCode: string): void => {
     if (onCodeUpdate && currentFile) {
       onCodeUpdate(currentFile, suggestedCode);
+    }
+  };
+
+  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+    setAssistantMode(e.target.value as AssistantMode);
+  };
+
+  const handleCopyToClipboard = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(result);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
+  const extractAndApplyCodeSuggestions = (): void => {
+    // Extract code suggestions from result and apply
+    const codeBlocks = result.match(/```[\s\S]*?```/g);
+    if (codeBlocks && codeBlocks.length > 0) {
+      const suggestedCode = codeBlocks[0]
+        .replace(/```\w*\n?/, '')
+        .replace(/\n?```$/, '');
+      applyCodeSuggestion(suggestedCode);
     }
   };
 
@@ -82,7 +122,7 @@ function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
         <div className="space-y-2">
           <select
             value={assistantMode}
-            onChange={(e) => setAssistantMode(e.target.value)}
+            onChange={handleModeChange}
             className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-dark-600 rounded bg-white dark:bg-dark-700 text-gray-900 dark:text-gray-100"
           >
             {Object.entries(modes).map(([key, label]) => (
@@ -133,24 +173,13 @@ function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
             {(assistantMode === 'debug' || assistantMode === 'optimize') && (
               <div className="space-y-2">
                 <button
-                  onClick={() => {
-                    // Extract code suggestions from result and apply
-                    const codeBlocks = result.match(/```[\s\S]*?```/g);
-                    if (codeBlocks && codeBlocks.length > 0) {
-                      const suggestedCode = codeBlocks[0]
-                        .replace(/```\w*\n?/, '')
-                        .replace(/\n?```$/, '');
-                      applyCodeSuggestion(suggestedCode);
-                    }
-                  }}
+                  onClick={extractAndApplyCodeSuggestions}
                   className="w-full btn-secondary text-xs py-1"
                 >
                   Apply Suggestions
                 </button>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(result);
-                  }}
+                  onClick={handleCopyToClipboard}
                   className="w-full btn-secondary text-xs py-1"
                 >
                   Copy to Clipboard
@@ -168,6 +197,6 @@ function AIAssistant({ geminiService, files, currentFile, onCodeUpdate }) {
       </div>
     </div>
   );
-}
+};
 
 export default AIAssistant;

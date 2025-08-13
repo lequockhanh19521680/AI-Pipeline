@@ -1,7 +1,8 @@
 import React from 'react';
 import { getFileIcon } from '../data';
+import { FileTreeProps } from '../types';
 
-function FileTree({ files, currentFile, onFileSelect }) {
+const FileTree: React.FC<FileTreeProps> = ({ files, currentFile, onFileSelect }) => {
   return (
     <>
       {/* Sidebar Header */}
@@ -38,6 +39,6 @@ function FileTree({ files, currentFile, onFileSelect }) {
       </div>
     </>
   );
-}
+};
 
 export default FileTree;

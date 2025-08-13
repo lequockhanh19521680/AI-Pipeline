@@ -1,5 +1,8 @@
+// Data and configuration for the AI Pipeline IDE
+import { FileMap, PipelineStage, PipelineStatus } from './types';
+
 // Initial file data for the IDE
-export const initialFiles = {
+export const initialFiles: FileMap = {
   'pipeline.py': `# AI Pipeline Main Script
 import numpy as np
 import pandas as pd
@@ -162,29 +165,20 @@ Edit \`config.yaml\` to customize pipeline parameters.
 `
 };
 
-// Pipeline status types
-export const PIPELINE_STAGES = {
-  DATA_INGESTION: 'Data Ingestion',
-  PROCESSING: 'Processing',
-  MODEL_TRAINING: 'Model Training',
-  DEPLOYMENT: 'Deployment'
-};
+// Pipeline stages enum usage
+export const PIPELINE_STAGES = PipelineStage;
 
-export const PIPELINE_STATUS = {
-  IDLE: 'idle',
-  RUNNING: 'running',
-  COMPLETED: 'completed',
-  ERROR: 'error'
-};
+// Pipeline status enum usage  
+export const PIPELINE_STATUS = PipelineStatus;
 
 // Gemini API configuration
 export const GEMINI_CONFIG = {
   API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
   DEFAULT_MODEL: 'gemini-pro'
-};
+} as const;
 
-// File icon mapping
-export const getFileIcon = (filename) => {
+// File icon mapping with type safety
+export const getFileIcon = (filename: string): string => {
   const extension = filename.split('.').pop()?.toLowerCase();
   
   switch (extension) {
@@ -197,6 +191,13 @@ export const getFileIcon = (filename) => {
       return 'fas fa-file-text text-gray-500';
     case 'md':
       return 'fas fa-file-alt text-green-500';
+    case 'js':
+    case 'jsx':
+    case 'ts':
+    case 'tsx':
+      return 'fas fa-file-code text-yellow-600';
+    case 'json':
+      return 'fas fa-file-code text-green-600';
     default:
       return 'fas fa-file text-gray-400';
   }

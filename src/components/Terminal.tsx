@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import AIAssistant from './AIAssistant';
+import { TerminalProps } from '../types';
 
-function Terminal({ output, onCommand, geminiService, files, currentFile, onCodeUpdate }) {
-  const [currentCommand, setCurrentCommand] = useState('');
-  const [activeTab, setActiveTab] = useState('output');
+type TabType = 'output' | 'pipeline' | 'assistant';
 
-  const handleCommand = (e) => {
+const Terminal: React.FC<TerminalProps> = ({ 
+  output, 
+  onCommand, 
+  geminiService, 
+  files, 
+  currentFile, 
+  onCodeUpdate 
+}) => {
+  const [currentCommand, setCurrentCommand] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<TabType>('output');
+
+  const handleCommand = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (currentCommand.trim()) {
         onCommand(currentCommand.trim());
         setCurrentCommand('');
       }
     }
+  };
+
+  const handleCommandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentCommand(e.target.value);
   };
 
   return (
@@ -69,7 +83,7 @@ function Terminal({ output, onCommand, geminiService, files, currentFile, onCode
                     <input
                       type="text"
                       value={currentCommand}
-                      onChange={(e) => setCurrentCommand(e.target.value)}
+                      onChange={handleCommandChange}
                       onKeyDown={handleCommand}
                       className="bg-transparent outline-none flex-1 text-green-400"
                       placeholder="Type command..."
@@ -126,6 +140,6 @@ function Terminal({ output, onCommand, geminiService, files, currentFile, onCode
       </div>
     </div>
   );
-}
+};
 
 export default Terminal;

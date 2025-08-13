@@ -1,6 +1,7 @@
 import React from 'react';
+import { ThemeToggleProps } from '../types';
 
-function ThemeToggle({ isDarkMode, onToggle }) {
+const ThemeToggle: React.FC<ThemeToggleProps> = ({ isDarkMode, onToggle }) => {
   return (
     <button
       onClick={() => onToggle(!isDarkMode)}
@@ -10,6 +11,6 @@ function ThemeToggle({ isDarkMode, onToggle }) {
       <i className={`fas ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-gray-600 dark:text-gray-400`}></i>
     </button>
   );
-}
+};
 
 export default ThemeToggle;

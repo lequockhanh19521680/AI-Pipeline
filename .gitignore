@@ -30,3 +30,10 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Playwright
+/tmp/
+test-results/

@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { EditorProps } from '../types';
 
-function Editor({ content, filename, onChange }) {
-  const [editorContent, setEditorContent] = useState(content);
+const Editor: React.FC<EditorProps> = ({ content, filename, onChange }) => {
+  const [editorContent, setEditorContent] = useState<string>(content);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setEditorContent(newContent);
     onChange(newContent);
   };
 
-  const getLanguageFromFilename = (filename) => {
+  const getLanguageFromFilename = (filename: string): string => {
     const extension = filename?.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'py':
@@ -17,6 +18,9 @@ function Editor({ content, filename, onChange }) {
       case 'js':
       case 'jsx':
         return 'javascript';
+      case 'ts':
+      case 'tsx':
+        return 'typescript';
       case 'yaml':
       case 'yml':
         return 'yaml';
@@ -30,7 +34,7 @@ function Editor({ content, filename, onChange }) {
   };
 
   // Update local state when content prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     setEditorContent(content);
   }, [content]);
 
@@ -58,6 +62,6 @@ function Editor({ content, filename, onChange }) {
       </div>
     </div>
   );
-}
+};
 
 export default Editor;
