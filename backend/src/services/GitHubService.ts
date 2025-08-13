@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { GitHubConfig, PRDetails, RepoStructure, GeneratedCode, FileNode } from '../types';
+import { GitHubConfig, PRDetails, RepoStructure, GeneratedCode, FileNode } from '../../shared/interfaces/api.js';
 
 export class GitHubService {
   private octokit: Octokit | null = null;
