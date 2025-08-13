@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""
+Data Ingestion Stage
+Loads and validates data for the ML pipeline
+"""
+
+import sys
+import yaml
+import pandas as pd
+import numpy as np
+import json
+from pathlib import Path
+
+def load_config(config_file, stage_id):
+    """Load pipeline configuration"""
+    with open(config_file, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+def ingest_data(config):
+    """Ingest and validate data"""
+    print("🔄 Starting data ingestion...")
+    
+    # Simulate data loading
+    data_path = config.get('data', {}).get('input_path', './data/sample_data.csv')
+    
+    try:
+        # Create sample data if not exists
+        if not Path(data_path).exists():
+            print(f"📊 Creating sample dataset at {data_path}")
+            Path(data_path).parent.mkdir(parents=True, exist_ok=True)
+            
+            # Generate sample classification data
+            np.random.seed(42)
+            n_samples = 1000
+            n_features = 20
+            
+            X = np.random.randn(n_samples, n_features)
+            y = (X[:, 0] + X[:, 1] + np.random.randn(n_samples) * 0.1 > 0).astype(int)
+            
+            # Create feature names
+            feature_names = [f'feature_{i}' for i in range(n_features)]
+            
+            # Create DataFrame
+            df = pd.DataFrame(X, columns=feature_names)
+            df['target'] = y
+            
+            # Save to CSV
+            df.to_csv(data_path, index=False)
+            print(f"✅ Sample dataset created with {n_samples} samples and {n_features} features")
+        
+        # Load the data
+        df = pd.read_csv(data_path)
+        
+        # Basic validation
+        print(f"📋 Dataset shape: {df.shape}")
+        print(f"📋 Columns: {list(df.columns)}")
+        print(f"📋 Missing values: {df.isnull().sum().sum()}")
+        
+        # Data quality checks
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        print(f"📋 Numeric columns: {len(numeric_cols)}")
+        
+        # Save data summary
+        output_dir = Path(config.get('data', {}).get('output_path', './outputs')) / 'data_ingestion'
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        summary = {
+            'shape': df.shape,
+            'columns': list(df.columns),
+            'dtypes': df.dtypes.to_dict(),
+            'missing_values': df.isnull().sum().to_dict(),
+            'numeric_columns': list(numeric_cols),
+            'sample_data': df.head().to_dict()
+        }
+        
+        with open(output_dir / 'data_summary.json', 'w') as f:
+            json.dump(summary, f, indent=2, default=str)
+        
+        # Save processed data
+        df.to_csv(output_dir / 'ingested_data.csv', index=False)
+        
+        print("✅ Data ingestion completed successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Data ingestion failed: {str(e)}")
+        return False
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python data_ingestion.py <config_file> <stage_id>")
+        sys.exit(1)
+    
+    config_file = sys.argv[1]
+    stage_id = sys.argv[2]
+    
+    try:
+        config = load_config(config_file, stage_id)
+        success = ingest_data(config)
+        sys.exit(0 if success else 1)
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
