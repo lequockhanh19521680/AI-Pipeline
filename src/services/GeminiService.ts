@@ -9,17 +9,40 @@ import {
   GeminiError 
 } from '../types';
 
+interface RetryOptions {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+
 class GeminiService {
   private apiKey: string;
   private baseUrl: string;
+  private retryOptions: RetryOptions;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, retryOptions?: Partial<RetryOptions>) {
     this.apiKey = apiKey;
     this.baseUrl = GEMINI_CONFIG.API_URL;
+    this.retryOptions = {
+      maxRetries: 3,
+      baseDelay: 1000,
+      maxDelay: 10000,
+      ...retryOptions
+    };
   }
 
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey;
+  }
+
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private calculateRetryDelay(attempt: number): number {
+    const exponentialDelay = this.retryOptions.baseDelay * Math.pow(2, attempt);
+    const jitter = Math.random() * 1000; // Add jitter to prevent thundering herd
+    return Math.min(exponentialDelay + jitter, this.retryOptions.maxDelay);
   }
 
   async generateContent(prompt: string, options: GeminiGenerationOptions = {}): Promise<string> {
@@ -61,38 +84,74 @@ class GeminiService {
       ]
     };
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body)
-      });
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= this.retryOptions.maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new GeminiError(
-          `Gemini API error: ${errorData.error?.message || response.statusText}`,
-          response.status,
-          errorData
-        );
-      }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const error = new GeminiError(
+            `Gemini API error: ${errorData.error?.message || response.statusText}`,
+            response.status,
+            errorData
+          );
 
-      const data: GeminiResponse = await response.json();
-      
-      if (data.candidates && data.candidates.length > 0) {
-        return data.candidates[0].content.parts[0].text;
-      } else {
-        throw new GeminiError('No response generated from Gemini');
+          // Don't retry on client errors (4xx) except rate limiting (429)
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+            throw error;
+          }
+
+          lastError = error;
+          
+          if (attempt < this.retryOptions.maxRetries) {
+            const delayMs = this.calculateRetryDelay(attempt);
+            console.warn(`Retrying Gemini API request (attempt ${attempt + 1}/${this.retryOptions.maxRetries}) after ${delayMs}ms...`);
+            await this.delay(delayMs);
+            continue;
+          }
+          
+          throw error;
+        }
+
+        const data: GeminiResponse = await response.json();
+        
+        if (data.candidates && data.candidates.length > 0) {
+          return data.candidates[0].content.parts[0].text;
+        } else {
+          throw new GeminiError('No response generated from Gemini');
+        }
+      } catch (error) {
+        console.error(`Gemini API request failed (attempt ${attempt + 1}):`, error);
+        
+        if (error instanceof GeminiError) {
+          lastError = error;
+        } else {
+          lastError = new GeminiError('Failed to communicate with Gemini API', undefined, error);
+        }
+
+        // Don't retry on non-network errors
+        if (!(error instanceof TypeError) && attempt < this.retryOptions.maxRetries) {
+          const delayMs = this.calculateRetryDelay(attempt);
+          console.warn(`Retrying Gemini API request (attempt ${attempt + 1}/${this.retryOptions.maxRetries}) after ${delayMs}ms...`);
+          await this.delay(delayMs);
+          continue;
+        }
+
+        if (attempt === this.retryOptions.maxRetries) {
+          throw lastError;
+        }
       }
-    } catch (error) {
-      console.error('Gemini API request failed:', error);
-      if (error instanceof GeminiError) {
-        throw error;
-      }
-      throw new GeminiError('Failed to communicate with Gemini API', undefined, error);
     }
+
+    throw lastError || new GeminiError('Unexpected error in retry loop');
   }
 
   // Pipeline-specific methods
