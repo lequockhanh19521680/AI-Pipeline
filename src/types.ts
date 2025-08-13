@@ -5,29 +5,23 @@ export interface FileMap {
 }
 
 export interface PipelineConfig {
-  data: {
-    source: string;
-    target_column: string;
+  projectType: 'frontend' | 'backend' | 'fullstack';
+  projectName: string;
+  description: string;
+  requirements: string;
+  techStack: {
+    frontend?: string[];
+    backend?: string[];
+    database?: string;
   };
-  model: {
+  features: string[];
+  designSystem?: {
+    colorScheme: string;
+    components: string[];
+  };
+  architecture?: {
     type: string;
-    n_estimators: number;
-    random_state: number;
-  };
-  preprocessing: {
-    test_size: number;
-    normalize: boolean;
-    feature_selection?: boolean;
-  };
-  training?: {
-    validation_split: number;
-    epochs: number;
-    batch_size: number;
-  };
-  output?: {
-    model_path: string;
-    metrics_path: string;
-    logs_path: string;
+    patterns: string[];
   };
 }
 
@@ -42,6 +36,8 @@ export interface PipelineContext {
   previousResults?: StageResults;
   stageIndex?: number;
   totalStages?: number;
+  projectStructure?: string[];
+  qaFeedback?: string;
 }
 
 export interface GeminiGenerationOptions {
@@ -96,10 +92,13 @@ export enum PipelineStatus {
 }
 
 export enum PipelineStage {
-  DATA_INGESTION = 'Data Ingestion',
-  PROCESSING = 'Processing',
-  MODEL_TRAINING = 'Model Training',
-  DEPLOYMENT = 'Deployment'
+  TECH_LEAD = 'AI Tech Lead',
+  BUSINESS_ANALYST = 'AI Business Analyst', 
+  UX_UI_DESIGNER = 'AI UX/UI Designer',
+  ARCHITECT = 'AI Architect',
+  DEVELOPER = 'AI Developer',
+  QA_ENGINEER = 'AI QA Engineer',
+  DEVELOPER_REFINEMENT = 'AI Developer (Refinement)'
 }
 
 // Component prop types
@@ -142,6 +141,23 @@ export interface AIAssistantProps {
   files: FileMap;
   currentFile: string;
   onCodeUpdate: (filename: string, content: string) => void;
+}
+
+export interface ProjectInputProps {
+  onProjectSubmit: (config: PipelineConfig) => void;
+  isVisible: boolean;
+}
+
+export interface PreviewPanelProps {
+  files: FileMap;
+  projectType: string;
+  isVisible: boolean;
+}
+
+export interface BackendStatusProps {
+  files: FileMap;
+  projectType: string;
+  isVisible: boolean;
 }
 
 // Forward declaration for GeminiService

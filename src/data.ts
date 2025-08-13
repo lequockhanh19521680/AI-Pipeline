@@ -1,167 +1,45 @@
 // Data and configuration for the AI Pipeline IDE
-import { FileMap, PipelineStage, PipelineStatus } from './types';
+import { FileMap, PipelineStage, PipelineStatus, PipelineConfig } from './types';
 
 // Initial file data for the IDE
 export const initialFiles: FileMap = {
-  'pipeline.py': `# AI Pipeline Main Script
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-import yaml
+  'project-requirements.md': `# Project Requirements
 
-class AIPipeline:
-    def __init__(self, config_path='config.yaml'):
-        """Initialize the AI Pipeline with configuration."""
-        self.config = self.load_config(config_path)
-        self.model = None
-        self.data = None
-        
-    def load_config(self, config_path):
-        """Load configuration from YAML file."""
-        try:
-            with open(config_path, 'r') as file:
-                config = yaml.safe_load(file)
-            print(f"✓ Configuration loaded from {config_path}")
-            return config
-        except FileNotFoundError:
-            print(f"⚠ Config file {config_path} not found, using defaults")
-            return self.get_default_config()
-    
-    def get_default_config(self):
-        """Return default configuration."""
-        return {
-            'data': {
-                'source': 'data/dataset.csv',
-                'target_column': 'target'
-            },
-            'model': {
-                'type': 'random_forest',
-                'n_estimators': 100,
-                'random_state': 42
-            },
-            'preprocessing': {
-                'test_size': 0.2,
-                'normalize': True
-            }
-        }
-    
-    def load_data(self):
-        """Load and preprocess data."""
-        print("📊 Loading data...")
-        try:
-            # Simulate data loading
-            self.data = pd.read_csv(self.config['data']['source'])
-            print(f"✓ Data loaded: {self.data.shape}")
-            return True
-        except Exception as e:
-            print(f"❌ Error loading data: {e}")
-            return False
-    
-    def train_model(self):
-        """Train the machine learning model."""
-        if self.data is None:
-            print("❌ No data loaded")
-            return False
-            
-        print("🤖 Training model...")
-        try:
-            X = self.data.drop(self.config['data']['target_column'], axis=1)
-            y = self.data[self.config['data']['target_column']]
-            
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, 
-                test_size=self.config['preprocessing']['test_size'],
-                random_state=self.config['model']['random_state']
-            )
-            
-            self.model = RandomForestClassifier(
-                n_estimators=self.config['model']['n_estimators'],
-                random_state=self.config['model']['random_state']
-            )
-            
-            self.model.fit(X_train, y_train)
-            score = self.model.score(X_test, y_test)
-            
-            print(f"✓ Model trained successfully!")
-            print(f"📈 Test accuracy: {score:.4f}")
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error training model: {e}")
-            return False
-    
-    def run_pipeline(self):
-        """Execute the complete AI pipeline."""
-        print("🚀 Starting AI Pipeline...")
-        
-        if not self.load_data():
-            return False
-            
-        if not self.train_model():
-            return False
-            
-        print("🎉 Pipeline completed successfully!")
-        return True
+Please describe your project requirements here.
 
-if __name__ == "__main__":
-    pipeline = AIPipeline()
-    pipeline.run_pipeline()
-`,
-  'config.yaml': `# AI Pipeline Configuration
-data:
-  source: "data/dataset.csv"
-  target_column: "target"
-  
-model:
-  type: "random_forest"
-  n_estimators: 100
-  random_state: 42
-  
-preprocessing:
-  test_size: 0.2
-  normalize: true
-  feature_selection: false
-  
-training:
-  validation_split: 0.2
-  epochs: 100
-  batch_size: 32
-  
-output:
-  model_path: "models/trained_model.pkl"
-  metrics_path: "outputs/metrics.json"
-  logs_path: "logs/pipeline.log"
-`,
-  'requirements.txt': `numpy==1.24.3
-pandas==2.0.3
-scikit-learn==1.3.0
-PyYAML==6.0.1
-matplotlib==3.7.2
-seaborn==0.12.2
-jupyter==1.0.0
-`,
-  'README.md': `# AI Pipeline Project
-
-A modern AI pipeline for machine learning workflows.
+## Project Type
+- [ ] Frontend Only
+- [ ] Backend Only  
+- [ ] Full Stack
 
 ## Features
+- Feature 1
+- Feature 2
+- Feature 3
 
-- Data ingestion and preprocessing
-- Model training and evaluation
-- Automated pipeline execution
-- Configuration management
-- Logging and monitoring
+## Technical Requirements
+- Performance requirements
+- Security considerations
+- Scalability needs
 
-## Usage
+## Additional Notes
+Any additional notes or specific requirements.
+`,
+  'README.md': `# AI Generated Project
 
-\`\`\`bash
-python pipeline.py --config config.yaml
-\`\`\`
+This project was generated using the AI Pipeline IDE.
 
-## Configuration
+## Getting Started
 
-Edit \`config.yaml\` to customize pipeline parameters.
+Instructions will be added here after project generation.
+
+## Architecture
+
+Architecture details will be provided by the AI Architect.
+
+## Development
+
+Development guidelines will be added here.
 `
 };
 
@@ -193,12 +71,86 @@ export const getFileIcon = (filename: string): string => {
       return 'fas fa-file-alt text-green-500';
     case 'js':
     case 'jsx':
+      return 'fas fa-file-code text-yellow-600';
     case 'ts':
     case 'tsx':
-      return 'fas fa-file-code text-yellow-600';
+      return 'fas fa-file-code text-blue-600';
     case 'json':
       return 'fas fa-file-code text-green-600';
+    case 'html':
+      return 'fas fa-file-code text-orange-500';
+    case 'css':
+      return 'fas fa-file-code text-purple-500';
+    case 'vue':
+      return 'fas fa-file-code text-green-500';
+    case 'php':
+      return 'fas fa-file-code text-indigo-500';
+    case 'java':
+      return 'fas fa-file-code text-red-500';
+    case 'sql':
+      return 'fas fa-file-alt text-cyan-500';
     default:
       return 'fas fa-file text-gray-400';
+  }
+};
+
+// Default project configurations
+export const getDefaultProjectConfig = (projectType: 'frontend' | 'backend' | 'fullstack'): PipelineConfig => {
+  const baseConfig = {
+    projectName: 'AI Generated Project',
+    description: 'Project generated by AI Pipeline IDE',
+    requirements: 'Basic project requirements',
+    features: ['Core functionality', 'User interface', 'Error handling'],
+  };
+
+  switch (projectType) {
+    case 'frontend':
+      return {
+        ...baseConfig,
+        projectType: 'frontend',
+        techStack: {
+          frontend: ['React', 'TypeScript', 'Tailwind CSS'],
+        },
+        designSystem: {
+          colorScheme: 'Modern dark theme',
+          components: ['Header', 'Sidebar', 'Main content', 'Footer'],
+        },
+      };
+    
+    case 'backend':
+      return {
+        ...baseConfig,
+        projectType: 'backend',
+        techStack: {
+          backend: ['Node.js', 'Express', 'TypeScript'],
+          database: 'MongoDB',
+        },
+        architecture: {
+          type: 'REST API',
+          patterns: ['MVC', 'Repository Pattern'],
+        },
+      };
+    
+    case 'fullstack':
+      return {
+        ...baseConfig,
+        projectType: 'fullstack',
+        techStack: {
+          frontend: ['React', 'TypeScript', 'Tailwind CSS'],
+          backend: ['Node.js', 'Express', 'TypeScript'],
+          database: 'MongoDB',
+        },
+        designSystem: {
+          colorScheme: 'Modern dark theme',
+          components: ['Header', 'Sidebar', 'Main content', 'Footer'],
+        },
+        architecture: {
+          type: 'Full-stack web application',
+          patterns: ['MVC', 'Repository Pattern', 'Component-based frontend'],
+        },
+      };
+    
+    default:
+      return baseConfig as PipelineConfig;
   }
 };
