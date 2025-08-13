@@ -26,6 +26,8 @@
         .fa-spin { animation: fa-spin 2s infinite linear; }
         @keyframes fa-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fa-circle::before { content: '\f111'; }
+        .fa-exclamation-triangle::before { content: '\f071'; }
+        .fa-file::before { content: '\f15b'; }
         
         /* Custom fonts */
         body { font-family: system-ui, -apple-system, sans-serif; }
@@ -34,6 +36,6 @@
 </head>
 <body class="overflow-hidden">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
