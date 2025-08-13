@@ -274,61 +274,200 @@ Format as clear, professional documentation.
 
   async runPipelineStage(stageName: string, context: PipelineContext): Promise<string> {
     const stagePrompts: Record<string, string> = {
-      'Data Ingestion': `
-Analyze and process data ingestion for an AI pipeline:
+      'AI Tech Lead': `
+You are an experienced AI Tech Lead. Analyze the project requirements and decide the optimal architecture.
 
-Context: ${JSON.stringify(context, null, 2)}
+Project Details:
+${JSON.stringify(context.config, null, 2)}
 
-Provide detailed steps for:
-1. Data source validation with comprehensive error handling
-2. Robust data loading strategy with retry mechanisms
-3. Initial data quality checks and validation rules
-4. Advanced error handling for data issues
-5. Real-time progress monitoring and logging
+Your tasks:
+1. Analyze the project requirements and scope
+2. Decide the optimal project type (frontend-only, backend-only, or fullstack)
+3. Recommend the technology stack based on requirements
+4. Provide architectural decision rationale
+5. Create a high-level development roadmap
 
-Return actionable steps, code snippets, and error recovery strategies.
+Please provide:
+- Project type recommendation with justification
+- Recommended technology stack
+- High-level architecture overview
+- Development phases and timeline
+- Key technical considerations
+
+Format your response with clear sections and actionable recommendations.
 `,
-      'Processing': `
-Design advanced data processing pipeline for:
+      'AI Business Analyst': `
+You are an expert AI Business Analyst. Create comprehensive business analysis documentation.
 
-Context: ${JSON.stringify(context, null, 2)}
+Project Context:
+${JSON.stringify(context.config, null, 2)}
 
-Include:
-1. Comprehensive data cleaning procedures with outlier detection
-2. Advanced feature engineering with domain expertise
-3. Intelligent data transformation logic
-4. Multi-level validation checkpoints
-5. Performance optimization and memory management
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
 
-Provide implementation details, best practices, and scalability considerations.
+Your tasks:
+1. Analyze business requirements and objectives
+2. Define functional and non-functional requirements
+3. Create user stories and acceptance criteria
+4. Identify stakeholders and their needs
+5. Define success metrics and KPIs
+
+Please provide:
+- Business requirements document
+- User stories with acceptance criteria
+- Stakeholder analysis
+- Success metrics and KPIs
+- Risk assessment and mitigation strategies
+
+Format as a comprehensive business analysis document.
 `,
-      'Model Training': `
-Create advanced model training strategy for:
+      'AI UX/UI Designer': `
+You are a creative AI UX/UI Designer. Create a comprehensive design system for this project.
 
-Context: ${JSON.stringify(context, null, 2)}
+Project Context:
+${JSON.stringify(context.config, null, 2)}
 
-Design:
-1. Intelligent model selection with automated hyperparameter tuning
-2. Robust training pipeline with early stopping and checkpointing
-3. Advanced hyperparameter optimization using Bayesian methods
-4. Cross-validation strategy with stratified sampling
-5. Comprehensive performance monitoring and model versioning
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
 
-Include code examples, monitoring setup, and deployment preparation.
+Your tasks (only for frontend/fullstack projects):
+1. Design user interface mockups and wireframes
+2. Create a cohesive design system with color palette, typography, and components
+3. Define user experience flows and interactions
+4. Create responsive design specifications
+5. Ensure accessibility compliance
+
+Please provide:
+- Design system with color palette and typography
+- Component library specifications
+- User interface mockups (described in detail)
+- User experience flow diagrams
+- Responsive design guidelines
+- Accessibility considerations
+
+Format as a detailed design specification document.
 `,
-      'Deployment': `
-Design production deployment strategy for:
+      'AI Architect': `
+You are a senior AI Architect. Create detailed technical specifications.
 
-Context: ${JSON.stringify(context, null, 2)}
+Project Context:
+${JSON.stringify(context.config, null, 2)}
 
-Create:
-1. Production-ready model packaging and containerization
-2. Scalable API endpoints with load balancing
-3. Monitoring and alerting systems for model performance
-4. A/B testing framework for model updates
-5. Rollback strategies and disaster recovery
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
 
-Provide deployment code, monitoring scripts, and operational procedures.
+Your tasks:
+1. Design detailed system architecture
+2. Define API specifications and database schema
+3. Create component architecture and module structure
+4. Specify security and performance requirements
+5. Define deployment and infrastructure needs
+
+Please provide:
+- Detailed system architecture diagram (described)
+- API specifications with endpoints
+- Database schema design
+- Component/module structure
+- Security architecture
+- Performance requirements
+- Deployment strategy
+
+Format as a comprehensive technical specification document.
+`,
+      'AI Developer': `
+You are an expert AI Developer. Implement the project based on the specifications.
+
+Project Context:
+${JSON.stringify(context.config, null, 2)}
+
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
+
+Your tasks:
+1. Implement the complete project according to specifications
+2. Create all necessary files and code structure
+3. Implement core functionality and features
+4. Add proper error handling and validation
+5. Include comprehensive documentation
+
+Please provide:
+- Complete project file structure
+- All source code files with full implementation
+- Configuration files (package.json, etc.)
+- Documentation and README
+- Setup and deployment instructions
+
+Respond with multiple code blocks for different files, clearly labeled.
+`,
+      'AI QA Engineer': `
+You are a meticulous AI QA Engineer. Review the code and identify issues.
+
+Project Context:
+${JSON.stringify(context.config, null, 2)}
+
+Code to Review:
+${context.files ? Object.entries(context.files).map(([name, content]) => `
+File: ${name}
+\`\`\`
+${content}
+\`\`\`
+`).join('\n') : 'No code files available'}
+
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
+
+Your tasks:
+1. Perform comprehensive code review
+2. Identify bugs, security issues, and performance problems
+3. Check code quality and best practices compliance
+4. Verify functionality against requirements
+5. Create detailed bug reports and improvement suggestions
+
+Please provide:
+- Code quality assessment
+- List of identified bugs and issues
+- Security vulnerability analysis
+- Performance optimization suggestions
+- Best practices compliance report
+- Detailed bug reports with severity levels
+
+Format as a comprehensive QA report with actionable feedback.
+`,
+      'AI Developer (Refinement)': `
+You are an expert AI Developer specializing in code refinement. Fix issues based on QA feedback.
+
+Project Context:
+${JSON.stringify(context.config, null, 2)}
+
+Current Code:
+${context.files ? Object.entries(context.files).map(([name, content]) => `
+File: ${name}
+\`\`\`
+${content}
+\`\`\`
+`).join('\n') : 'No code files available'}
+
+QA Feedback:
+${context.qaFeedback || 'No QA feedback available'}
+
+Previous Results:
+${context.previousResults ? JSON.stringify(context.previousResults, null, 2) : 'None'}
+
+Your tasks:
+1. Address all issues identified by QA
+2. Fix bugs and security vulnerabilities
+3. Improve code quality and performance
+4. Enhance error handling and validation
+5. Update documentation as needed
+
+Please provide:
+- Updated source code files with fixes
+- Summary of changes made
+- Explanation of bug fixes
+- Improved error handling
+- Enhanced documentation
+
+Respond with updated code files and a summary of improvements.
 `
     };
 
