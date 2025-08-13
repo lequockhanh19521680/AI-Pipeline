@@ -4,7 +4,8 @@ import Editor from './components/Editor';
 import Terminal from './components/Terminal';
 import Pipeline from './components/Pipeline';
 import ThemeToggle from './components/ThemeToggle';
-import { initialFiles, PIPELINE_STATUS } from './data';
+import { initialFiles, PIPELINE_STATUS, PIPELINE_STAGES } from './data';
+import GeminiService from './services/GeminiService';
 
 function App() {
   // State management
@@ -18,6 +19,9 @@ function App() {
   ]);
   const [openTabs, setOpenTabs] = useState(['pipeline.py']);
   const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [geminiService, setGeminiService] = useState(null);
+  const [currentStage, setCurrentStage] = useState(null);
+  const [stageResults, setStageResults] = useState({});
 
   // Initialize theme on mount
   useEffect(() => {
@@ -26,6 +30,15 @@ function App() {
       setIsDarkMode(savedTheme === 'dark');
     }
   }, []);
+
+  // Initialize Gemini service when API key changes
+  useEffect(() => {
+    if (geminiApiKey) {
+      setGeminiService(new GeminiService(geminiApiKey));
+    } else {
+      setGeminiService(null);
+    }
+  }, [geminiApiKey]);
 
   // Apply theme to document
   useEffect(() => {
@@ -66,38 +79,98 @@ function App() {
 
   // Pipeline operations
   const runPipeline = async () => {
-    if (!geminiApiKey) {
+    if (!geminiService) {
       addToTerminal('❌ Error: Gemini API key not configured');
       addToTerminal('Please set your API key in the settings');
       return;
     }
 
     setPipelineStatus(PIPELINE_STATUS.RUNNING);
+    setCurrentStage(null);
+    setStageResults({});
     addToTerminal('🚀 Starting AI Pipeline with Gemini...');
     
     try {
-      // Simulate pipeline execution with Gemini API
-      await simulatePipelineWithGemini();
+      await runPipelineWithGemini();
       setPipelineStatus(PIPELINE_STATUS.COMPLETED);
       addToTerminal('🎉 Pipeline completed successfully!');
     } catch (error) {
       setPipelineStatus(PIPELINE_STATUS.ERROR);
       addToTerminal(`❌ Pipeline failed: ${error.message}`);
+    } finally {
+      setCurrentStage(null);
     }
   };
 
-  const simulatePipelineWithGemini = async () => {
-    const stages = [
-      { name: 'Data Ingestion', duration: 2000 },
-      { name: 'Processing', duration: 3000 },
-      { name: 'Model Training', duration: 4000 },
-      { name: 'Deployment', duration: 2000 }
-    ];
+  const runPipelineWithGemini = async () => {
+    const stages = Object.values(PIPELINE_STAGES);
+    const context = {
+      files: files,
+      currentFile: currentFile,
+      config: files['config.yaml'] ? parseYaml(files['config.yaml']) : {}
+    };
 
-    for (const stage of stages) {
-      addToTerminal(`📊 ${stage.name}...`);
-      await new Promise(resolve => setTimeout(resolve, stage.duration));
-      addToTerminal(`✓ ${stage.name} completed`);
+    for (let i = 0; i < stages.length; i++) {
+      const stage = stages[i];
+      setCurrentStage(stage);
+      addToTerminal(`📊 Starting ${stage}...`);
+      
+      try {
+        const result = await geminiService.runPipelineStage(stage, {
+          ...context,
+          previousResults: stageResults,
+          stageIndex: i + 1,
+          totalStages: stages.length
+        });
+        
+        setStageResults(prev => ({
+          ...prev,
+          [stage]: result
+        }));
+        
+        addToTerminal(`✓ ${stage} completed`);
+        addToTerminal(`📋 Result: ${result.substring(0, 100)}...`);
+        
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+      } catch (error) {
+        addToTerminal(`❌ ${stage} failed: ${error.message}`);
+        throw error;
+      }
+    }
+  };
+
+  // Helper function to parse YAML (simple implementation)
+  const parseYaml = (yamlString) => {
+    try {
+      // This is a very basic YAML parser for demo purposes
+      // In production, you'd use a proper YAML library
+      const lines = yamlString.split('\n');
+      const result = {};
+      let currentSection = null;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        
+        if (!line.startsWith(' ') && line.includes(':')) {
+          const [key, value] = line.split(':');
+          if (value.trim()) {
+            result[key.trim()] = value.trim().replace(/"/g, '');
+          } else {
+            currentSection = key.trim();
+            result[currentSection] = {};
+          }
+        } else if (currentSection && line.includes(':')) {
+          const [key, value] = line.split(':');
+          result[currentSection][key.trim()] = value.trim().replace(/"/g, '');
+        }
+      }
+      return result;
+    } catch (error) {
+      console.error('YAML parsing error:', error);
+      return {};
     }
   };
 
@@ -171,6 +244,8 @@ function App() {
               setGeminiApiKey(key);
               localStorage.setItem('gemini_api_key', key);
             }}
+            currentStage={currentStage}
+            stageResults={stageResults}
           />
         </aside>
 
@@ -228,6 +303,10 @@ function App() {
                   addToTerminal(`Command not found: ${command}`);
                 }
               }}
+              geminiService={geminiService}
+              files={files}
+              currentFile={currentFile}
+              onCodeUpdate={updateFileContent}
             />
           </div>
         </main>

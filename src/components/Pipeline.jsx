@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { PIPELINE_STAGES, PIPELINE_STATUS } from '../data';
 
-function Pipeline({ status, apiKey, onApiKeyChange }) {
+function Pipeline({ status, apiKey, onApiKeyChange, currentStage, stageResults }) {
   const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
 
   const getStageStatus = (stage) => {
     if (status === PIPELINE_STATUS.IDLE) return 'idle';
     if (status === PIPELINE_STATUS.RUNNING) {
-      // Simulate progression through stages
-      return 'active';
+      if (currentStage === stage) return 'active';
+      if (stageResults[stage]) return 'completed';
+      return 'idle';
     }
     if (status === PIPELINE_STATUS.COMPLETED) return 'completed';
-    if (status === PIPELINE_STATUS.ERROR) return 'error';
+    if (status === PIPELINE_STATUS.ERROR) {
+      if (stageResults[stage]) return 'completed';
+      if (currentStage === stage) return 'error';
+      return 'idle';
+    }
     return 'idle';
   };
 
