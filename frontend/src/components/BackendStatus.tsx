@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BackendStatusProps } from '../types';
+import { backendAPI } from '../services/BackendAPI';
 
 interface APIEndpoint {
   method: string;
@@ -8,17 +9,61 @@ interface APIEndpoint {
   status: 'active' | 'inactive' | 'error';
 }
 
+interface ServerHealthData {
+  status: 'running' | 'stopped' | 'error';
+  uptime: number;
+  version: string;
+  endpoints: APIEndpoint[];
+  logs: string[];
+}
+
 const BackendStatus: React.FC<BackendStatusProps> = ({ files, projectType, isVisible }) => {
   const [endpoints, setEndpoints] = useState<APIEndpoint[]>([]);
   const [serverStatus, setServerStatus] = useState<'running' | 'stopped' | 'error'>('stopped');
   const [logs, setLogs] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isVisible && (projectType === 'backend' || projectType === 'fullstack')) {
       analyzeBackendFiles();
-      simulateServerStatus();
+      fetchServerStatus();
     }
   }, [files, isVisible, projectType]);
+
+  // Fetch real server status from backend
+  const fetchServerStatus = async () => {
+    setLoading(true);
+    try {
+      const healthCheck = await backendAPI.healthCheck();
+      if (healthCheck) {
+        setServerStatus('running');
+        
+        // Fetch detailed server info
+        const response = await fetch('/api/server/status');
+        if (response.ok) {
+          const data: ServerHealthData = await response.json();
+          setServerStatus(data.status);
+          setLogs(data.logs || [
+            '[INFO] Server is running',
+            '[INFO] All services operational',
+            '[INFO] Database connected',
+            '[INFO] API endpoints active'
+          ]);
+        } else {
+          setLogs(['[INFO] Basic health check passed']);
+        }
+      } else {
+        setServerStatus('stopped');
+        setLogs(['[ERROR] Backend server not responding']);
+      }
+    } catch (error) {
+      console.error('Failed to fetch server status:', error);
+      setServerStatus('error');
+      setLogs(['[ERROR] Failed to connect to backend server']);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const analyzeBackendFiles = () => {
     const backendFiles = Object.entries(files).filter(([name, content]) => 
@@ -65,17 +110,6 @@ const BackendStatus: React.FC<BackendStatusProps> = ({ files, projectType, isVis
     }
 
     setEndpoints(extractedEndpoints);
-  };
-
-  const simulateServerStatus = () => {
-    setServerStatus('running');
-    setLogs([
-      '[INFO] Server starting...',
-      '[INFO] Database connected successfully',
-      '[INFO] Server listening on port 3000',
-      '[INFO] All endpoints registered',
-      '[SUCCESS] Server is running and ready to accept requests'
-    ]);
   };
 
   const getStatusColor = (status: string) => {

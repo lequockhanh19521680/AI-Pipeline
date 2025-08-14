@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { Project, IProject } from '../models/Project.js';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -19,22 +20,22 @@ const validateRequest = (req: Request, res: Response, next: express.NextFunction
 
 // POST /api/projects - Create a new project
 router.post('/',
+  requireAuth,
   [
     body('name').trim().isLength({ min: 1, max: 255 }).withMessage('Name is required and must be less than 255 characters'),
     body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description is required and must be less than 2000 characters'),
     body('projectType').isIn(['frontend', 'backend', 'fullstack']).withMessage('Project type must be frontend, backend, or fullstack'),
-    body('ownerId').trim().isLength({ min: 1 }).withMessage('Owner ID is required'),
     body('files').optional().isObject().withMessage('Files must be an object'),
     body('techStack').optional().isObject().withMessage('Tech stack must be an object')
   ],
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const projectData = {
         name: req.body.name,
         description: req.body.description,
         projectType: req.body.projectType,
-        ownerId: req.body.ownerId,
+        ownerId: (req.user!._id as any).toString(), // Use authenticated user ID
         files: req.body.files || {},
         techStack: req.body.techStack || {}
       };
@@ -58,23 +59,22 @@ router.post('/',
 
 // GET /api/projects - Get all projects (with pagination and filtering)
 router.get('/',
+  requireAuth,
   [
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-    query('ownerId').optional().trim().isLength({ min: 1 }).withMessage('Owner ID must not be empty'),
     query('status').optional().isIn(['draft', 'active', 'completed', 'archived']).withMessage('Invalid status'),
     query('projectType').optional().isIn(['frontend', 'backend', 'fullstack']).withMessage('Invalid project type')
   ],
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      // Build filter
-      const filter: any = {};
-      if (req.query.ownerId) filter.ownerId = req.query.ownerId;
+      // Build filter - only show user's own projects
+      const filter: any = { ownerId: (req.user!._id as any).toString() };
       if (req.query.status) filter.status = req.query.status;
       if (req.query.projectType) filter.projectType = req.query.projectType;
 
@@ -109,13 +109,17 @@ router.get('/',
 
 // GET /api/projects/:id - Get a specific project
 router.get('/:id',
+  requireAuth,
   [
     param('id').isMongoId().withMessage('Invalid project ID')
   ],
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const project = await Project.findById(req.params.id);
+      const project = await Project.findOne({ 
+        _id: req.params.id, 
+        ownerId: (req.user!._id as any).toString() 
+      });
       
       if (!project) {
         return res.status(404).json({
@@ -140,6 +144,7 @@ router.get('/:id',
 
 // PUT /api/projects/:id - Update a project
 router.put('/:id',
+  requireAuth,
   [
     param('id').isMongoId().withMessage('Invalid project ID'),
     body('name').optional().trim().isLength({ min: 1, max: 255 }).withMessage('Name must be less than 255 characters'),
@@ -150,14 +155,14 @@ router.put('/:id',
     body('status').optional().isIn(['draft', 'active', 'completed', 'archived']).withMessage('Invalid status')
   ],
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       const updateData = { ...req.body };
       delete updateData.ownerId; // Prevent changing owner
       delete updateData._id; // Prevent changing ID
 
-      const project = await Project.findByIdAndUpdate(
-        req.params.id,
+      const project = await Project.findOneAndUpdate(
+        { _id: req.params.id, ownerId: (req.user!._id as any).toString() },
         updateData,
         { new: true, runValidators: true }
       );
@@ -185,13 +190,17 @@ router.put('/:id',
 
 // DELETE /api/projects/:id - Delete a project
 router.delete('/:id',
+  requireAuth,
   [
     param('id').isMongoId().withMessage('Invalid project ID')
   ],
   validateRequest,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const project = await Project.findByIdAndDelete(req.params.id);
+      const project = await Project.findOneAndDelete({ 
+        _id: req.params.id, 
+        ownerId: (req.user!._id as any).toString() 
+      });
 
       if (!project) {
         return res.status(404).json({

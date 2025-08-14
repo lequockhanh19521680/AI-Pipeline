@@ -55,6 +55,43 @@ class WebSocketService {
         this.handlePipelineEvent(event);
       });
 
+      // Collaboration event handlers
+      this.socket.on('user-joined', (data: any) => {
+        this.handleCollaborationEvent({
+          type: 'user_join',
+          userId: data.userId,
+          data: data,
+          timestamp: new Date(data.timestamp)
+        });
+      });
+
+      this.socket.on('user-left', (data: any) => {
+        this.handleCollaborationEvent({
+          type: 'user_leave', 
+          userId: data.userId,
+          data: data,
+          timestamp: new Date(data.timestamp)
+        });
+      });
+
+      this.socket.on('code-change', (data: any) => {
+        this.handleCollaborationEvent({
+          type: 'code_change',
+          userId: data.userId,
+          data: data,
+          timestamp: new Date(data.timestamp)
+        });
+      });
+
+      this.socket.on('cursor-move', (data: any) => {
+        this.handleCollaborationEvent({
+          type: 'cursor_move',
+          userId: data.userId,
+          data: data,
+          timestamp: new Date(data.timestamp)
+        });
+      });
+
       // Set connection timeout
       setTimeout(() => {
         if (!this.connected) {
@@ -133,6 +170,13 @@ class WebSocketService {
     if (wildcardHandlers) {
       wildcardHandlers.forEach(handler => handler(event));
     }
+  }
+
+  private handleCollaborationEvent(event: RealTimeCollaborationEvent): void {
+    console.log('🤝 Collaboration event received:', event);
+    
+    // Notify all collaboration handlers
+    this.collaborationHandlers.forEach(handler => handler(event));
   }
 
   isConnected(): boolean {

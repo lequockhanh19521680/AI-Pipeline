@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AICodeSuggestion, CodeAnalysisResult, CodeIssue } from '@shared/interfaces/common.js';
+import GeminiService from '../services/GeminiService';
+import PromptManager from '../prompts/PromptManager';
 
 interface AIIntelligenceFeaturesProps {
   code: string;
   language: string;
+  filename?: string;
+  geminiService?: GeminiService;
   onApplySuggestion?: (suggestion: AICodeSuggestion) => void;
   className?: string;
 }
@@ -11,6 +15,8 @@ interface AIIntelligenceFeaturesProps {
 export const AIIntelligenceFeatures: React.FC<AIIntelligenceFeaturesProps> = ({
   code,
   language,
+  filename = 'untitled',
+  geminiService,
   onApplySuggestion,
   className = '',
 }) => {
@@ -18,90 +24,128 @@ export const AIIntelligenceFeatures: React.FC<AIIntelligenceFeaturesProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState<'suggestions' | 'issues' | 'metrics'>('suggestions');
 
-  // Simulate AI analysis
+  // Real AI analysis using Gemini service
   const analyzeCode = async () => {
+    if (!geminiService) {
+      console.error('Gemini service not available');
+      return;
+    }
+
+    if (!code.trim()) {
+      return;
+    }
+
     setIsAnalyzing(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock analysis results
-    const mockResult: CodeAnalysisResult = {
-      file: 'current-file.ts',
-      issues: [
-        {
+    try {
+      // Use PromptManager to generate structured code review prompt
+      const prompt = PromptManager.generateCodeReview({
+        content: code,
+        filename,
+        language
+      });
+
+      const aiResponse = await geminiService.generateContent(prompt, {
+        temperature: 0.3,
+        maxOutputTokens: 2048
+      });
+
+      // Parse the AI response to extract structured data
+      const analysisResult = parseAIResponse(aiResponse);
+      setAnalysisResult(analysisResult);
+
+    } catch (error) {
+      console.error('Failed to analyze code:', error);
+      // Show error to user
+      setAnalysisResult({
+        file: filename,
+        issues: [{
           id: '1',
-          type: 'warning',
-          severity: 'medium',
-          message: 'Consider using const instead of let for variables that are not reassigned',
-          file: 'current-file.ts',
-          line: 5,
-          column: 10,
-          rule: 'prefer-const'
-        },
-        {
-          id: '2',
-          type: 'info',
-          severity: 'low',
-          message: 'Function could be simplified using arrow function syntax',
-          file: 'current-file.ts',
-          line: 12,
+          type: 'error',
+          severity: 'high',
+          message: 'Failed to analyze code. Please check your Gemini API key and try again.',
+          file: filename,
+          line: 1,
           column: 1,
-          rule: 'prefer-arrow-callback'
+          rule: 'analysis-error'
+        }],
+        suggestions: [],
+        metrics: {
+          complexity: 0,
+          maintainability: 0,
+          testCoverage: 0
         }
-      ],
-      suggestions: [
-        {
-          id: '1',
-          type: 'optimization',
-          title: 'Optimize loop performance',
-          description: 'Replace forEach with for...of for better performance',
-          code: `for (const item of items) {\n  // process item\n}`,
-          confidence: 0.85,
-          file: 'current-file.ts',
-          line: 8
-        },
-        {
-          id: '2',
-          type: 'improvement',
-          title: 'Add error handling',
-          description: 'Wrap async operations in try-catch blocks',
-          code: `try {\n  await asyncOperation();\n} catch (error) {\n  console.error('Operation failed:', error);\n}`,
-          confidence: 0.92,
-          file: 'current-file.ts',
-          line: 15
-        },
-        {
-          id: '3',
-          type: 'feature',
-          title: 'Add TypeScript type annotations',
-          description: 'Improve type safety with explicit type annotations',
-          code: `function processData(data: string[]): ProcessedData {\n  // implementation\n}`,
-          confidence: 0.78,
-          file: 'current-file.ts',
-          line: 20
-        }
-      ],
-      metrics: {
-        complexity: 3.2,
-        maintainability: 7.8,
-        testCoverage: 65
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Parse AI response into structured format
+  const parseAIResponse = (response: string): CodeAnalysisResult => {
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[1]);
+        return {
+          file: filename,
+          issues: parsed.issues || [],
+          suggestions: parsed.suggestions || [],
+          metrics: parsed.metrics || {
+            complexity: 0,
+            maintainability: 0,
+            testCoverage: 0
+          }
+        };
       }
-    };
-    
-    setAnalysisResult(mockResult);
-    setIsAnalyzing(false);
+
+      // Fallback: try to parse the entire response as JSON
+      const parsed = JSON.parse(response);
+      return {
+        file: filename,
+        issues: parsed.issues || [],
+        suggestions: parsed.suggestions || [],
+        metrics: parsed.metrics || {
+          complexity: 0,
+          maintainability: 0,
+          testCoverage: 0
+        }
+      };
+    } catch (error) {
+      console.error('Failed to parse AI response:', error);
+      
+      // Fallback: create a basic analysis from the text response
+      return {
+        file: filename,
+        issues: [],
+        suggestions: [{
+          id: '1',
+          type: 'improvement',
+          title: 'AI Analysis Results',
+          description: response.substring(0, 500) + (response.length > 500 ? '...' : ''),
+          code: code,
+          confidence: 0.7,
+          file: filename
+        }],
+        metrics: {
+          complexity: 5,
+          maintainability: 7,
+          testCoverage: 0
+        }
+      };
+    }
   };
 
   useEffect(() => {
-    if (code) {
+    if (code && geminiService) {
       const timer = setTimeout(() => {
         analyzeCode();
       }, 1000); // Auto-analyze after 1 second of code changes
       
       return () => clearTimeout(timer);
     }
-  }, [code]);
+  }, [code, geminiService]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

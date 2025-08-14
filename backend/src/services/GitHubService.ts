@@ -123,26 +123,15 @@ export class GitHubService {
 
         // Update existing file
         await this.octokit.repos.createOrUpdateFileContents({
-            owner: config.owner,
-            repo: config.repo,
-            path: filePath,
-            message: `Update ${filePath}`,
-            content: Buffer.from(content as string).toString('base64'),
-            branch: branchName,
-            sha: Array.isArray(existingFile) ? existingFile[0].sha : existingFile.sha
-          });
-        } catch (error) {
-          // File doesn't exist, create it
-          await this.octokit.repos.createOrUpdateFileContents({
-            owner: config.owner,
-            repo: config.repo,
-            path: filePath,
-            message: `Add ${filePath}`,
-            content: Buffer.from(content as string).toString('base64'),
-            branch: branchName
-          });
-        }
-      } catch (fileError) {
+          owner: config.owner,
+          repo: config.repo,
+          path: filePath,
+          message: `Update ${filePath}`,
+          content: Buffer.from(content as string).toString('base64'),
+          branch: branchName,
+          sha: Array.isArray(existingFile) ? existingFile[0].sha : existingFile.sha
+        });
+      } catch (error) {
         // File doesn't exist, create it
         await this.octokit.repos.createOrUpdateFileContents({
           owner: config.owner,

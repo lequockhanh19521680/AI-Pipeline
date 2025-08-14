@@ -49,7 +49,7 @@ export class PipelineJobProcessor {
       console.error(`❌ Job ${job?.id} failed for pipeline ${job?.data.pipelineId} stage ${job?.data.stageId}:`, err.message);
     });
 
-    this.worker.on('progress', (job: Job, progress: number) => {
+    this.worker.on('progress', (job: Job, progress: any) => {
       console.log(`🔄 Job ${job.id} progress: ${progress}%`);
     });
   }
