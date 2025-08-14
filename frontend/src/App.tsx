@@ -12,6 +12,7 @@ import PipelineFlow from './components/PipelineFlow';
 import StageDetailModal from './components/StageDetailModal';
 import ProjectManagement from './components/ProjectManagement';
 import GitHubIntegration from './components/GitHubIntegration';
+import AICodeReviewAssistant from './components/AICodeReviewAssistant';
 import { initialFiles, PIPELINE_STATUS, PIPELINE_STAGES, getDefaultProjectConfig } from './data';
 import GeminiService from './services/GeminiService';
 import backendAPI from './services/BackendAPI';
@@ -75,7 +76,7 @@ const App: React.FC = () => {
   const [githubConfig, setGitHubConfig] = useState<GitHubConfig | null>(null);
   
   // UI State
-  const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github'>('code');
+  const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github' | 'review'>('code');
   const [backendConnected, setBackendConnected] = useState<boolean>(false);
 
   // Initialize theme on mount and load data
@@ -1234,6 +1235,7 @@ module.exports = app;`;
                   { id: 'pipeline', name: 'ML Pipeline', icon: '🔄' },
                   { id: 'projects', name: 'Projects', icon: '📁' },
                   { id: 'github', name: 'GitHub', icon: '🐙' },
+                  { id: 'review', name: 'Code Review', icon: '🔍' },
                 ].map((view) => (
                   <button
                     key={view.id}
@@ -1465,6 +1467,20 @@ module.exports = app;`;
               <GitHubIntegration
                 isVisible={true}
                 onConfigSave={handleGitHubConfigSave}
+              />
+            </div>
+          )}
+
+          {currentView === 'review' && (
+            <div className="flex-1 p-6 overflow-y-auto">
+              <AICodeReviewAssistant
+                files={files}
+                githubConfig={githubConfig}
+                geminiService={geminiService}
+                onCodeUpdate={(filename, content) => {
+                  setFiles(prev => ({ ...prev, [filename]: content }));
+                  addToTerminal(`📝 Applied code fix to ${filename}`);
+                }}
               />
             </div>
           )}
