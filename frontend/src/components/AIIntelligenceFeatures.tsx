@@ -40,7 +40,7 @@ export const AIIntelligenceFeatures: React.FC<AIIntelligenceFeaturesProps> = ({
     try {
       // Use PromptManager to generate structured code review prompt
       const prompt = PromptManager.generateCodeReview({
-        code,
+        content: code,
         filename,
         language
       });

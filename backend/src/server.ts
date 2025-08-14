@@ -9,6 +9,7 @@ import { GitHubService } from './services/GitHubService';
 import pipelineRoutes from './routes/pipeline';
 import githubRoutes from './routes/github';
 import projectsRoutes from './routes/projects';
+import authRoutes from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +49,7 @@ app.locals.pipelineService = pipelineService;
 app.locals.githubService = githubService;
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/pipeline', pipelineRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/projects', projectsRoutes);
