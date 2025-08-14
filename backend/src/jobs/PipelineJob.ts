@@ -1,4 +1,4 @@
-import { Job, Queue, Worker } from 'bullmq';
+import { Job, Queue, Worker, QueueEvents } from 'bullmq';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import { promises as fs } from 'fs';
@@ -26,6 +26,7 @@ export interface PipelineJobResult {
 export class PipelineJobProcessor {
   private queue: Queue;
   private worker: Worker;
+  private queueEvents: QueueEvents;
 
   constructor(redisOptions: any = {}) {
     this.queue = new Queue('pipeline-jobs', {
@@ -35,6 +36,10 @@ export class PipelineJobProcessor {
     this.worker = new Worker('pipeline-jobs', this.processJob.bind(this), {
       connection: redisOptions,
       concurrency: 1 // Process one job at a time for now
+    });
+
+    this.queueEvents = new QueueEvents('pipeline-jobs', {
+      connection: redisOptions
     });
 
     this.setupEventHandlers();
@@ -184,8 +189,41 @@ export class PipelineJobProcessor {
     };
   }
 
+  getQueueEvents(): QueueEvents {
+    return this.queueEvents;
+  }
+
+  async cancelPipelineJobs(pipelineId: string): Promise<void> {
+    // Cancel active jobs for this pipeline
+    const activeJobs = await this.queue.getActive();
+    const pipelineJobs = activeJobs.filter(job => job.data.pipelineId === pipelineId);
+    
+    for (const job of pipelineJobs) {
+      try {
+        await job.remove();
+        console.log(`🛑 Cancelled active job ${job.id} for pipeline ${pipelineId}`);
+      } catch (error) {
+        console.warn(`Failed to cancel active job ${job.id}:`, error);
+      }
+    }
+
+    // Remove waiting jobs for this pipeline
+    const waitingJobs = await this.queue.getWaiting();
+    const waitingPipelineJobs = waitingJobs.filter(job => job.data.pipelineId === pipelineId);
+    
+    for (const job of waitingPipelineJobs) {
+      try {
+        await job.remove();
+        console.log(`🛑 Removed waiting job ${job.id} for pipeline ${pipelineId}`);
+      } catch (error) {
+        console.warn(`Failed to remove waiting job ${job.id}:`, error);
+      }
+    }
+  }
+
   async close(): Promise<void> {
     await this.worker.close();
+    await this.queueEvents.close();
     await this.queue.close();
   }
 }
