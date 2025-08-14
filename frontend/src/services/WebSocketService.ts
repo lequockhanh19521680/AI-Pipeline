@@ -1,14 +1,25 @@
 import { io, Socket } from 'socket.io-client';
-import { PipelineEvent, LogEvent } from '../types';
+import { PipelineEvent, LogEvent } from '@shared/interfaces/api.js';
 
 export type WebSocketEventHandler = (event: PipelineEvent) => void;
 export type LogEventHandler = (log: LogEvent) => void;
+
+interface RealTimeCollaborationEvent {
+  type: 'cursor_move' | 'code_change' | 'user_join' | 'user_leave';
+  userId: string;
+  data: any;
+  timestamp: Date;
+}
+
+export type CollaborationEventHandler = (event: RealTimeCollaborationEvent) => void;
 
 class WebSocketService {
   private socket: Socket | null = null;
   private connected = false;
   private eventHandlers: Map<string, WebSocketEventHandler[]> = new Map();
   private logHandlers: LogEventHandler[] = [];
+  private collaborationHandlers: CollaborationEventHandler[] = [];
+  private currentRoom: string | null = null;
 
   constructor(private url = 'http://localhost:3001') {}
 
@@ -146,6 +157,89 @@ class WebSocketService {
 
   onAnyEvent(handler: WebSocketEventHandler): void {
     this.onPipelineEvent('*', handler);
+  }
+
+  // Real-time collaboration features
+  joinRoom(roomId: string): void {
+    if (this.socket && this.connected) {
+      if (this.currentRoom) {
+        this.socket.emit('leave-room', this.currentRoom);
+      }
+      this.socket.emit('join-room', roomId);
+      this.currentRoom = roomId;
+      console.log(`🏠 Joined room: ${roomId}`);
+    }
+  }
+
+  leaveRoom(): void {
+    if (this.socket && this.currentRoom) {
+      this.socket.emit('leave-room', this.currentRoom);
+      this.currentRoom = null;
+      console.log('🚪 Left room');
+    }
+  }
+
+  sendCodeChange(data: { file: string; changes: any; cursor: any }): void {
+    if (this.socket && this.connected && this.currentRoom) {
+      this.socket.emit('code-change', {
+        room: this.currentRoom,
+        ...data,
+        timestamp: new Date(),
+      });
+    }
+  }
+
+  sendCursorMove(data: { file: string; line: number; column: number }): void {
+    if (this.socket && this.connected && this.currentRoom) {
+      this.socket.emit('cursor-move', {
+        room: this.currentRoom,
+        ...data,
+        timestamp: new Date(),
+      });
+    }
+  }
+
+  onCollaboration(handler: CollaborationEventHandler): void {
+    this.collaborationHandlers.push(handler);
+  }
+
+  removeCollaborationHandler(handler: CollaborationEventHandler): void {
+    const index = this.collaborationHandlers.indexOf(handler);
+    if (index > -1) {
+      this.collaborationHandlers.splice(index, 1);
+    }
+  }
+
+  // Pipeline-specific methods
+  sendPipelineCommand(pipelineId: string, command: string, data?: any): void {
+    if (this.socket && this.connected) {
+      this.socket.emit('pipeline-command', {
+        pipelineId,
+        command,
+        data,
+        timestamp: new Date(),
+      });
+    }
+  }
+
+  requestPipelineStatus(pipelineId: string): void {
+    this.sendPipelineCommand(pipelineId, 'status');
+  }
+
+  startPipeline(pipelineId: string, config?: any): void {
+    this.sendPipelineCommand(pipelineId, 'start', config);
+  }
+
+  stopPipeline(pipelineId: string): void {
+    this.sendPipelineCommand(pipelineId, 'stop');
+  }
+
+  pausePipeline(pipelineId: string): void {
+    this.sendPipelineCommand(pipelineId, 'pause');
+  }
+
+  resumePipeline(pipelineId: string): void {
+    this.sendPipelineCommand(pipelineId, 'resume');
   }
 }
 

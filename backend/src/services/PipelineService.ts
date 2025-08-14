@@ -3,7 +3,8 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
-import { MLPipelineConfig, PipelineExecution, MLPipelineStage, PipelineEvent } from '../types';
+import { MLPipelineConfig, PipelineExecution, MLPipelineStage } from '../../shared/types/pipeline.js';
+import { PipelineEvent } from '../../shared/interfaces/api.js';
 
 export class PipelineService {
   private executions: Map<string, PipelineExecution> = new Map();
