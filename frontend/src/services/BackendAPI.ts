@@ -193,6 +193,42 @@ class BackendAPIService implements BackendAPI {
     });
     return response.data;
   }
+
+  // Pipeline execution methods
+  async getPipelineExecutions(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    projectId?: string;
+    ownerId?: string;
+  } = {}): Promise<{
+    executions: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    const response = await this.request<{
+      data: {
+        executions: any[];
+        pagination: any;
+      };
+    }>(`/pipeline/executions?${queryParams.toString()}`);
+    
+    return response.data;
+  }
 }
 
 // Create singleton instance
