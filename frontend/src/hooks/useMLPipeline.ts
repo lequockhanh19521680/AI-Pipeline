@@ -25,7 +25,7 @@ interface MLPipelineActions {
 
 export const useMLPipeline = (): MLPipelineState & MLPipelineActions => {
   const [mlPipelineStages, setMLPipelineStages] = useState<MLPipelineStage[]>([]);
-  const [currentMLPipeline, setCurrentMLPipeline] = useState<MLPipelineConfig | null>(null);
+  const [currentMLPipeline, setCurrentMLPipelineLocal] = useState<MLPipelineConfig | null>(null);
   const [selectedStage, setSelectedStage] = useState<MLPipelineStage | null>(null);
   const [showStageDetail, setShowStageDetail] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -170,7 +170,7 @@ export const useMLPipeline = (): MLPipelineState & MLPipelineActions => {
 
       // Create pipeline through backend
       const pipeline = await backendAPI.createPipeline(mlConfig);
-      setCurrentMLPipeline(pipeline);
+      setCurrentMLPipelineLocal(pipeline);
       setCurrentMLPipeline(pipeline);
       addTerminalMessage(`📋 ML Pipeline created: ${pipeline.id}`);
 
@@ -210,7 +210,7 @@ export const useMLPipeline = (): MLPipelineState & MLPipelineActions => {
 
   const resetMLPipeline = useCallback(() => {
     setMLPipelineStages([]);
-    setCurrentMLPipeline(null);
+    setCurrentMLPipelineLocal(null);
     setSelectedStage(null);
     setShowStageDetail(false);
     setIsInitialized(false);
