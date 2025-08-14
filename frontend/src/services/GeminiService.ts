@@ -8,6 +8,9 @@ import {
   PipelineContext,
   GeminiError 
 } from '../types';
+import { z } from 'zod';
+import { SchemaRegistry, SchemaType } from '../prompts/schemas';
+import PromptManager from '../prompts/PromptManager';
 
 interface RetryOptions {
   maxRetries: number;
@@ -154,7 +157,91 @@ class GeminiService {
     throw lastError || new GeminiError('Unexpected error in retry loop');
   }
 
-  // Pipeline-specific methods
+  // Robust JSON parsing with retry mechanism
+  async parseJsonResponse<T>(
+    responseText: string, 
+    schemaType: SchemaType,
+    originalPrompt?: string,
+    maxRetries: number = 2
+  ): Promise<T> {
+    const schema = SchemaRegistry[schemaType];
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Try to extract JSON from response
+        const jsonText = this.extractJsonFromResponse(responseText);
+        const parsedData = JSON.parse(jsonText);
+        
+        // Validate with schema
+        const validatedData = schema.parse(parsedData);
+        return validatedData as T;
+        
+      } catch (error) {
+        console.warn(`JSON parsing attempt ${attempt + 1} failed:`, error);
+        
+        if (attempt < maxRetries && originalPrompt) {
+          // Retry with corrected prompt
+          const errorMessage = error instanceof Error ? error.message : 'Invalid JSON format';
+          const retryPrompt = PromptManager.generateRetry(originalPrompt, errorMessage);
+          
+          try {
+            responseText = await this.generateContent(retryPrompt, {
+              temperature: 0.1,
+              maxOutputTokens: 2048
+            });
+          } catch (retryError) {
+            console.error(`Retry attempt ${attempt + 1} failed:`, retryError);
+            throw new GeminiError(`JSON parsing failed after ${attempt + 1} attempts: ${errorMessage}`);
+          }
+        } else {
+          throw new GeminiError(`Failed to parse JSON response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+    
+    throw new GeminiError('Maximum retry attempts exceeded');
+  }
+
+  private extractJsonFromResponse(responseText: string): string {
+    // Remove markdown code blocks
+    let cleanText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    
+    // Try to find JSON object boundaries
+    const jsonStart = cleanText.indexOf('{');
+    const jsonEnd = cleanText.lastIndexOf('}');
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    return cleanText.trim();
+  }
+
+  // Enhanced pipeline methods using PromptManager
+  async analyzeData(dataDescription: string, config: PipelineConfig): Promise<string> {
+    const prompt = PromptManager.analyzeData(dataDescription, config);
+    return await this.generateContent(prompt);
+  }
+
+  async optimizeConfig(config: PipelineConfig, context?: string): Promise<string> {
+    const prompt = PromptManager.optimizeConfig(config, context);
+    return await this.generateContent(prompt);
+  }
+
+  async debugCode(code: string, filename: string, error?: string, context?: string): Promise<string> {
+    const prompt = PromptManager.debugCode(code, filename, error, context);
+    return await this.generateContent(prompt);
+  }
+
+  async generateDocs(code: string, filename: string, projectContext?: PipelineConfig): Promise<string> {
+    const prompt = PromptManager.generateDocs(code, filename, projectContext);
+    return await this.generateContent(prompt);
+  }
+
+  async runPipelineStage(stage: string, context: PipelineContext): Promise<string> {
+    const prompt = PromptManager.runPipelineStage(stage, context);
+    return await this.generateContent(prompt);
+  }
   async analyzeData(dataDescription: string, config: PipelineConfig): Promise<string> {
     const prompt = `
 As an AI data scientist, analyze the following data configuration and provide insights:
