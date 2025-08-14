@@ -17,7 +17,7 @@ const Terminal: React.FC<TerminalProps> = ({
 
   const handleCommand = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      if (currentCommand.trim()) {
+      if (currentCommand.trim() && onCommand) {
         onCommand(currentCommand.trim());
         setCurrentCommand('');
       }

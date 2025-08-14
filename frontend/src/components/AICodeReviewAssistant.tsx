@@ -415,9 +415,9 @@ const AICodeReviewAssistant: React.FC<AICodeReviewAssistantProps> = ({
                               >
                                 <div className="flex items-start justify-between mb-3">
                                   <div>
-                                    <h7 className="font-medium text-gray-900 dark:text-gray-100">
+                                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
                                       {suggestion.title}
-                                    </h7>
+                                    </h4>
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                       {suggestion.description}
                                     </p>

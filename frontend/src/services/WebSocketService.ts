@@ -116,6 +116,7 @@ class WebSocketService {
         level: event.data.level,
         message: event.data.message,
         timestamp: new Date(event.timestamp),
+        source: event.stageId || 'system',
         stage: event.stageId,
       };
       this.logHandlers.forEach(handler => handler(logEvent));

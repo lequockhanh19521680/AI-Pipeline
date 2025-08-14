@@ -59,7 +59,13 @@ type AppAction =
   | { type: 'SELECT_FILE'; payload: { filename: string } }
   | { type: 'SET_VIEW'; payload: { view: 'code' | 'pipeline' | 'projects' | 'github' | 'review' } }
   | { type: 'TOGGLE_PANEL'; payload: { panel: 'projectInput' | 'preview' | 'backendStatus' } }
-  | { type: 'SET_LOADING'; payload: { loading: boolean } };
+  | { type: 'SET_LOADING'; payload: { loading: boolean } }
+  | { type: 'SET_PIPELINE_STATUS'; payload: { status: PipelineStatus } }
+  | { type: 'SET_CURRENT_STAGE'; payload: { stage: string | null } }
+  | { type: 'UPDATE_STAGE_RESULTS'; payload: { stage: string; results: any } }
+  | { type: 'SET_FILES'; payload: { files: FileMap } }
+  | { type: 'PIPELINE_COMPLETE' }
+  | { type: 'PIPELINE_ERROR' };
 
 // Initial state
 const initialState: AppState = {
@@ -130,6 +136,48 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return {
         ...state,
         isLoading: action.payload.loading
+      };
+
+    case 'SET_PIPELINE_STATUS':
+      return {
+        ...state,
+        pipelineStatus: action.payload.status
+      };
+
+    case 'SET_CURRENT_STAGE':
+      return {
+        ...state,
+        currentStage: action.payload.stage
+      };
+
+    case 'UPDATE_STAGE_RESULTS':
+      return {
+        ...state,
+        stageResults: {
+          ...state.stageResults,
+          [action.payload.stage]: action.payload.results
+        }
+      };
+
+    case 'SET_FILES':
+      return {
+        ...state,
+        files: action.payload.files
+      };
+
+    case 'PIPELINE_COMPLETE':
+      return {
+        ...state,
+        pipelineStatus: PIPELINE_STATUS.COMPLETED,
+        currentStage: null,
+        isLoading: false
+      };
+
+    case 'PIPELINE_ERROR':
+      return {
+        ...state,
+        pipelineStatus: PIPELINE_STATUS.ERROR,
+        isLoading: false
       };
     
     default:
@@ -226,8 +274,12 @@ const App: React.FC = () => {
   // Update panels based on project type
   useEffect(() => {
     if (projectConfig) {
-      setShowPreview(projectConfig.projectType === 'frontend' || projectConfig.projectType === 'fullstack');
-      setShowBackendStatus(projectConfig.projectType === 'backend' || projectConfig.projectType === 'fullstack');
+      if (projectConfig.projectType === 'frontend' || projectConfig.projectType === 'fullstack') {
+        dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'preview' } });
+      }
+      if (projectConfig.projectType === 'backend' || projectConfig.projectType === 'fullstack') {
+        dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'backendStatus' } });
+      }
     }
   }, [projectConfig]);
 
@@ -324,8 +376,7 @@ const App: React.FC = () => {
 
     webSocketService.onPipelineComplete((event) => {
       addToTerminal('🎉 ML Pipeline completed successfully!');
-      setPipelineStatus(PIPELINE_STATUS.COMPLETED);
-      setCurrentStage(null);
+      dispatch({ type: 'PIPELINE_COMPLETE' });
     });
 
     webSocketService.onLog((log) => {
@@ -377,17 +428,17 @@ const App: React.FC = () => {
 
   // New pipeline operations for software development workflow
   const startNewProject = (): void => {
-    setShowProjectInput(true);
+    dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'projectInput' } });
   };
 
   const handleProjectSubmit = (config: PipelineConfig): void => {
     setProjectConfig(config);
-    setShowProjectInput(false);
+    dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'projectInput' } });
     
     // Update initial files based on project type
     const newFiles = { ...initialFiles };
     newFiles['project-config.json'] = JSON.stringify(config, null, 2);
-    setFiles(newFiles);
+    dispatch({ type: 'SET_FILES', payload: { files: newFiles } });
     
     addToTerminal(`🎯 Project "${config.projectName}" configured`);
     addToTerminal(`📋 Type: ${config.projectType}`);
@@ -421,7 +472,7 @@ const App: React.FC = () => {
       addToTerminal('🎉 Software development pipeline completed successfully!');
       addToTerminal('💡 Your project is ready for download and development!');
     } catch (error) {
-      setPipelineStatus(PIPELINE_STATUS.ERROR);
+      dispatch({ type: 'PIPELINE_ERROR' });
       if (error instanceof PipelineError) {
         addToTerminal(`❌ Pipeline failed at stage: ${error.stage}`);
         addToTerminal(`📋 Error details: ${error.message}`);
@@ -436,8 +487,8 @@ const App: React.FC = () => {
         addToTerminal('Click "Run Pipeline" to retry with enhanced error recovery');
       }
     } finally {
-      setCurrentStage(null);
-      setIsLoading(false);
+      dispatch({ type: 'SET_CURRENT_STAGE', payload: { stage: null } });
+      dispatch({ type: 'SET_LOADING', payload: { loading: false } });
     }
   };
 
@@ -452,7 +503,7 @@ const App: React.FC = () => {
 
     for (let i = 0; i < stages.length; i++) {
       const stage = stages[i];
-      setCurrentStage(stage);
+      dispatch({ type: 'SET_CURRENT_STAGE', payload: { stage } });
       addToTerminal(`👨‍💼 ${stage} starting analysis...`);
       
       let stageRetries = 0;
@@ -462,15 +513,12 @@ const App: React.FC = () => {
         try {
           const result = await geminiService!.runPipelineStage(stage, {
             ...context,
-            previousResults: stageResults,
+            previousResults: appState.stageResults,
             stageIndex: i + 1,
             totalStages: stages.length
           });
           
-          setStageResults(prev => ({
-            ...prev,
-            [stage]: result
-          }));
+          dispatch({ type: 'UPDATE_STAGE_RESULTS', payload: { stage, results: result } });
           
           addToTerminal(`✅ ${stage} completed successfully`);
           
@@ -520,7 +568,7 @@ const App: React.FC = () => {
   const parseAndAddGeneratedFiles = (result: string): void => {
     // Parse the AI Developer result for file content
     const fileBlocks = result.split('```');
-    const newFiles: FileMap = { ...files };
+    const newFiles: FileMap = { ...appState.files };
     
     for (let i = 0; i < fileBlocks.length; i++) {
       const block = fileBlocks[i];
@@ -538,7 +586,7 @@ const App: React.FC = () => {
     }
     
     // Add some default files if none were generated
-    if (Object.keys(newFiles).length === Object.keys(files).length) {
+    if (Object.keys(newFiles).length === Object.keys(appState.files).length) {
       const projectType = projectConfig?.projectType || 'frontend';
       
       if (projectType === 'frontend' || projectType === 'fullstack') {
@@ -555,11 +603,11 @@ const App: React.FC = () => {
       }
     }
     
-    setFiles(newFiles);
+    dispatch({ type: 'SET_FILES', payload: { files: newFiles } });
     
     // Open the main file
     const mainFile = newFiles['index.html'] || newFiles['server.js'] || Object.keys(newFiles)[0];
-    if (mainFile && mainFile !== currentFile) {
+    if (mainFile && mainFile !== appState.currentFile) {
       openFile(Object.keys(newFiles).find(name => newFiles[name] === mainFile) || Object.keys(newFiles)[0]);
     }
   };
@@ -576,7 +624,7 @@ const App: React.FC = () => {
       return;
     }
     
-    const success = await downloadProjectAsZip(files, projectConfig.projectName);
+    const success = await downloadProjectAsZip(appState.files, projectConfig.projectName);
     if (success) {
       addToTerminal(`📦 Project "${projectConfig.projectName}" downloaded successfully!`);
       addToTerminal('🚀 Extract and run "npm install" to get started');
@@ -613,7 +661,7 @@ const App: React.FC = () => {
             <section class="tech-stack">
                 <h2>Technology Stack</h2>
                 <div class="tech-list">
-                    ${config.techStack.frontend?.map(tech => `<span class="tech-tag">${tech}</span>`).join('\n                    ') || ''}
+                    ${config.techStack?.frontend?.map(tech => `<span class="tech-tag">${tech}</span>`).join('\n                    ') || ''}
                 </div>
             </section>
         </main>
@@ -1003,7 +1051,7 @@ module.exports = app;`;
         downloadProject();
         break;
       case 'status':
-        addToTerminal(`📊 Pipeline Status: ${pipelineStatus}`);
+        addToTerminal(`📊 Pipeline Status: ${appState.pipelineStatus}`);
         if (projectConfig) {
           addToTerminal(`🎯 Project: ${projectConfig.projectName}`);
           addToTerminal(`📋 Type: ${projectConfig.projectType}`);
@@ -1077,13 +1125,13 @@ module.exports = app;`;
 
     if (!projectConfig) {
       addToTerminal('❌ No project configured for ML Pipeline');
-      setShowProjectInput(true);
+      dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'projectInput' } });
       return;
     }
 
-    setIsLoading(true);
-    setPipelineStatus(PIPELINE_STATUS.RUNNING);
-    setCurrentStage(null);
+    dispatch({ type: 'SET_LOADING', payload: { loading: true } });
+    dispatch({ type: 'SET_PIPELINE_STATUS', payload: { status: PIPELINE_STATUS.RUNNING } });
+    dispatch({ type: 'SET_CURRENT_STAGE', payload: { stage: null } });
     addToTerminal('🚀 Starting ML Pipeline execution...');
     addToTerminal(`🎯 Project: ${projectConfig.projectName}`);
 
@@ -1109,11 +1157,11 @@ module.exports = app;`;
       addToTerminal(`🔄 Execution started: ${executionId}`);
 
     } catch (error) {
-      setPipelineStatus(PIPELINE_STATUS.ERROR);
+      dispatch({ type: 'PIPELINE_ERROR' });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       addToTerminal(`❌ ML Pipeline failed: ${errorMessage}`);
     } finally {
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: { loading: false } });
     }
   };
 
@@ -1208,15 +1256,15 @@ module.exports = app;`;
     addToTerminal('🚀 Deploying to GitHub...');
 
     try {
-      // Prepare generated code
-      const generatedCode = {
-        files,
-        structure: [],
-        metadata: {
-          projectType: projectConfig.projectType,
-          techStack: Object.values(projectConfig.techStack).flat(),
-          description: projectConfig.description
-        }
+      // Prepare generated code in correct format - for now, combine all files into one
+      const combinedContent = Object.entries(appState.files)
+        .map(([filename, content]) => `// File: ${filename}\n${content}`)
+        .join('\n\n');
+      
+      const generatedCode: any = {
+        filename: 'combined-project.txt',
+        content: combinedContent,
+        path: 'combined-project.txt'
       };
 
       // Push code to repository
@@ -1267,7 +1315,8 @@ module.exports = app;`;
         {/* Modals */}
         <ProjectInput 
           onProjectSubmit={handleProjectSubmit}
-          isVisible={showProjectInput}
+          isVisible={appState.showProjectInput}
+          onProjectCreate={handleProjectCreate}
         />
 
         {selectedStage && (
@@ -1307,9 +1356,9 @@ module.exports = app;`;
                   </div>
 
                   {/* Pipeline Status */}
-                  <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm ${getStatusClassName(pipelineStatus)}`}>
-                    <span className={`w-2 h-2 rounded-full mr-2 ${getStatusDotClassName(pipelineStatus)}`}></span>
-                    {getStatusText(pipelineStatus)}
+                  <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm ${getStatusClassName(appState.pipelineStatus)}`}>
+                    <span className={`w-2 h-2 rounded-full mr-2 ${getStatusDotClassName(appState.pipelineStatus)}`}></span>
+                    {getStatusText(appState.pipelineStatus)}
                   </div>
                 </div>
               </div>
@@ -1352,10 +1401,10 @@ module.exports = app;`;
                 {currentView === 'pipeline' && (
                   <button
                     onClick={runMLPipeline}
-                    disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !backendConnected}
+                    disabled={appState.pipelineStatus === PIPELINE_STATUS.RUNNING || appState.isLoading || !backendConnected}
                     className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? (
+                    {appState.isLoading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                         Processing...
@@ -1377,7 +1426,7 @@ module.exports = app;`;
                       <>
                         <button
                           onClick={runPipeline}
-                          disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !projectConfig}
+                          disabled={appState.pipelineStatus === PIPELINE_STATUS.RUNNING || appState.isLoading || !projectConfig}
                           className="inline-flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
                         >
                           <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1420,16 +1469,17 @@ module.exports = app;`;
               {/* Sidebar */}
               <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                 <FileTree
-                  files={Object.keys(files)}
-                  currentFile={currentFile}
+                  files={Object.keys(appState.files)}
+                  currentFile={appState.currentFile}
                   onFileSelect={openFile}
                 />
                 <Pipeline 
-                  status={pipelineStatus}
+                  status={appState.pipelineStatus}
                   apiKey={geminiApiKey}
                   onApiKeyChange={handleApiKeyChange}
-                  currentStage={currentStage}
-                  stageResults={stageResults}
+                  currentStage={appState.currentStage}
+                  stageResults={appState.stageResults}
+                  stages={Object.values(PIPELINE_STAGES)}
                 />
               </aside>
 
@@ -1442,13 +1492,13 @@ module.exports = app;`;
                       <button
                         key={filename}
                         className={`flex items-center space-x-2 px-4 py-2 text-sm border-t border-l border-r border-gray-200 dark:border-gray-600 rounded-t-lg ${
-                          filename === currentFile
+                          filename === appState.currentFile
                             ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
                             : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
-                        onClick={() => setCurrentFile(filename)}
+                        onClick={() => openFile(filename)}
                       >
-                        <svg className={`h-4 w-4 ${filename === currentFile ? 'text-blue-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`h-4 w-4 ${filename === appState.currentFile ? 'text-blue-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span>{filename}</span>
@@ -1475,6 +1525,7 @@ module.exports = app;`;
                   {/* Code Editor */}
                   <div className="flex-1 flex flex-col">
                     <Editor
+                      value={appState.files[appState.currentFile] || ''}
                       content={appState.files[appState.currentFile] || ''}
                       filename={appState.currentFile}
                       onChange={(content) => updateFileContent(appState.currentFile, content)}
@@ -1483,12 +1534,14 @@ module.exports = app;`;
 
                   {/* Right Panel - Terminal */}
                   <div className="w-96 border-l border-gray-200 dark:border-gray-600 flex flex-col">
-                    <Terminal 
+                    <Terminal
+                      messages={terminalOutput}
                       output={terminalOutput}
+                      isVisible={true}
                       onCommand={handleTerminalCommand}
                       geminiService={geminiService}
-                      files={files}
-                      currentFile={currentFile}
+                      files={appState.files}
+                      currentFile={appState.currentFile}
                       onCodeUpdate={updateFileContent}
                     />
                   </div>
@@ -1502,9 +1555,15 @@ module.exports = app;`;
               <div className="flex-1 bg-gray-50 dark:bg-gray-900">
                 <PipelineFlow
                   stages={mlPipelineStages}
-                  currentStage={currentStage || undefined}
+                  currentStage={appState.currentStage || undefined}
                   onStageClick={handleStageClick}
                   onStageHover={handleStageHover}
+                  nodes={[]}
+                  edges={[]}
+                  onNodesChange={() => {}}
+                  onEdgesChange={() => {}}
+                  onConnect={() => {}}
+                  onNodeClick={() => {}}
                 />
               </div>
               
@@ -1567,11 +1626,11 @@ module.exports = app;`;
           {currentView === 'review' && (
             <div className="flex-1 p-6 overflow-y-auto">
               <AICodeReviewAssistant
-                files={files}
-                githubConfig={githubConfig}
-                geminiService={geminiService}
+                files={appState.files}
+                githubConfig={githubConfig || undefined}
+                geminiService={geminiService || undefined}
                 onCodeUpdate={(filename, content) => {
-                  setFiles(prev => ({ ...prev, [filename]: content }));
+                  updateFileContent(filename, content);
                   addToTerminal(`📝 Applied code fix to ${filename}`);
                 }}
               />
