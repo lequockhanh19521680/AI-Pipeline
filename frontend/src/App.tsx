@@ -1268,26 +1268,28 @@ module.exports = app;`;
       };
 
       // Push code to repository
-      const branchName = await backendAPI.pushCode(
+      const prDetails = await backendAPI.pushCode(
         githubConfig.token,
-        githubConfig,
-        generatedCode,
+        githubConfig.owner,
+        githubConfig.repo,
+        githubConfig.branch || 'main',
+        [generatedCode],
         `AI-generated: ${projectConfig.projectName}`
       );
 
-      addToTerminal(`📤 Code pushed to branch: ${branchName}`);
+      addToTerminal(`📤 Code pushed to branch: ${prDetails.branch}`);
 
       // Create pull request
-      const prDetails = await backendAPI.createPR(
+      const prDetailsCreate = await backendAPI.createPR(
         githubConfig.token,
         githubConfig,
-        branchName,
+        prDetails.branch,
         `Add ${projectConfig.projectName}`,
         `AI-generated application: ${projectConfig.description}`,
         generatedCode
       );
 
-      addToTerminal(`🔄 Pull request created: #${prDetails.number}`);
+      addToTerminal(`🔄 Pull request created: #${prDetailsCreate.number}`);
       addToTerminal(`🔗 URL: ${prDetails.url}`);
 
     } catch (error) {

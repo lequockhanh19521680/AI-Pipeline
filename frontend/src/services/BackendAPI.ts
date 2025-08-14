@@ -92,15 +92,17 @@ class BackendAPIService implements BackendAPI {
 
   async pushCode(
     token: string, 
-    config: GitHubConfig, 
-    generatedCode: GeneratedCode, 
+    owner: string, 
+    repo: string, 
+    branch: string, 
+    files: GeneratedCode[], 
     commitMessage: string
-  ): Promise<string> {
-    const response = await this.request<{ branchName: string }>('/github/push-code', {
+  ): Promise<PRDetails> {
+    const response = await this.request<PRDetails>('/github/push-code', {
       method: 'POST',
-      body: JSON.stringify({ token, config, generatedCode, commitMessage }),
+      body: JSON.stringify({ token, owner, repo, branch, files, commitMessage }),
     });
-    return response.branchName;
+    return response;
   }
 
   async createPR(
