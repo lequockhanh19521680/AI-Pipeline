@@ -12,6 +12,7 @@ import PipelineFlow from './components/PipelineFlow';
 import StageDetailModal from './components/StageDetailModal';
 import ProjectManagement from './components/ProjectManagement';
 import GitHubIntegration from './components/GitHubIntegration';
+import AICodeReviewAssistant from './components/AICodeReviewAssistant';
 import { initialFiles, PIPELINE_STATUS, PIPELINE_STAGES, getDefaultProjectConfig } from './data';
 import GeminiService from './services/GeminiService';
 import backendAPI from './services/BackendAPI';
@@ -75,7 +76,7 @@ const App: React.FC = () => {
   const [githubConfig, setGitHubConfig] = useState<GitHubConfig | null>(null);
   
   // UI State
-  const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github'>('code');
+  const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github' | 'review'>('code');
   const [backendConnected, setBackendConnected] = useState<boolean>(false);
 
   // Initialize theme on mount and load data
@@ -937,26 +938,26 @@ module.exports = app;`;
   const getStatusClassName = (status: PipelineStatus): string => {
     switch (status) {
       case PIPELINE_STATUS.RUNNING:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800';
       case PIPELINE_STATUS.COMPLETED:
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800';
       case PIPELINE_STATUS.ERROR:
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        return 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
       default:
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        return 'bg-gray-50 text-gray-700 border border-gray-200 dark:bg-gray-800/20 dark:text-gray-300 dark:border-gray-700';
     }
   };
 
   const getStatusDotClassName = (status: PipelineStatus): string => {
     switch (status) {
       case PIPELINE_STATUS.RUNNING:
-        return 'bg-blue-400 animate-pulse';
+        return 'bg-blue-500 animate-pulse shadow-blue-500/50 shadow-sm';
       case PIPELINE_STATUS.COMPLETED:
-        return 'bg-green-400';
+        return 'bg-emerald-500 shadow-emerald-500/50 shadow-sm';
       case PIPELINE_STATUS.ERROR:
-        return 'bg-red-400';
+        return 'bg-red-500 shadow-red-500/50 shadow-sm';
       default:
-        return 'bg-green-400';
+        return 'bg-gray-400 shadow-gray-400/50 shadow-sm';
     }
   };
 
@@ -1068,6 +1069,16 @@ module.exports = app;`;
     addToTerminal(`🗑️ Project deleted`);
   };
 
+  const handleProjectLoad = (project: ProjectMetadata): void => {
+    setCurrentProject(project);
+    if (project.pipelineConfig) {
+      setProjectConfig(project.pipelineConfig);
+    }
+    // Switch to code view to start the pipeline
+    setCurrentView('code');
+    addToTerminal(`🚀 Project loaded: ${project.name} - Ready to start pipeline!`);
+  };
+
   const getDefaultTechStack = (type: 'frontend' | 'backend' | 'fullstack') => {
     switch (type) {
       case 'frontend':
@@ -1174,131 +1185,142 @@ module.exports = app;`;
           />
         )}
 
-        {/* Enhanced Header with View Tabs */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI Pipeline IDE</h1>
-              <span className="text-xs text-gray-500 dark:text-gray-400">v3.0.0 Professional</span>
-            </div>
-            
-            {/* Connection Status */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${backendConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <span className="text-xs text-gray-600 dark:text-gray-400">
-                {backendConnected ? 'Backend Connected' : 'Backend Offline'}
-              </span>
-            </div>
-
-            {/* Pipeline Status */}
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClassName(pipelineStatus)}`}>
-              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotClassName(pipelineStatus)}`}></span>
-              {getStatusText(pipelineStatus)}
-            </span>
-          </div>
-
-          {/* View Tabs */}
-          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {[
-              { id: 'code', name: 'AI Code', icon: '💻' },
-              { id: 'pipeline', name: 'ML Pipeline', icon: '🔄' },
-              { id: 'projects', name: 'Projects', icon: '📁' },
-              { id: 'github', name: 'GitHub', icon: '🐙' },
-            ].map((view) => (
-              <button
-                key={view.id}
-                onClick={() => setCurrentView(view.id as any)}
-                className={`
-                  px-3 py-1.5 text-sm rounded-md transition-colors duration-150 flex items-center space-x-2
-                  ${currentView === view.id
-                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }
-                `}
-              >
-                <span>{view.icon}</span>
-                <span>{view.name}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center space-x-3">
-            {currentView === 'pipeline' && (
-              <button
-                onClick={runMLPipeline}
-                disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !backendConnected}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
+        {/* Enhanced Professional Header */}
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                {/* Logo and Brand */}
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
-                    Run ML Pipeline
-                  </>
-                )}
-              </button>
-            )}
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI Pipeline IDE</h1>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Professional Edition v3.0</p>
+                  </div>
+                </div>
+                
+                {/* Status Indicators */}
+                <div className="hidden sm:flex items-center space-x-4">
+                  {/* Connection Status */}
+                  <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className={`w-2.5 h-2.5 rounded-full ${backendConnected ? 'bg-emerald-400 shadow-emerald-400/50 shadow-sm' : 'bg-red-400 shadow-red-400/50 shadow-sm'}`}></div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      {backendConnected ? 'Connected' : 'Offline'}
+                    </span>
+                  </div>
 
-            {currentView === 'code' && (
-              <>
-                <button
-                  onClick={startNewProject}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  disabled={pipelineStatus === PIPELINE_STATUS.RUNNING}
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Project
-                </button>
+                  {/* Pipeline Status */}
+                  <div className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm ${getStatusClassName(pipelineStatus)}`}>
+                    <span className={`w-2 h-2 rounded-full mr-2 ${getStatusDotClassName(pipelineStatus)}`}></span>
+                    {getStatusText(pipelineStatus)}
+                  </div>
+                </div>
+              </div>
 
-                {projectConfig && (
-                  <>
-                    <button
-                      onClick={runPipeline}
-                      disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !projectConfig}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                    >
-                      <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
-                      </svg>
-                      AI Pipeline
-                    </button>
+              {/* Theme Toggle */}
+              <div className="flex items-center space-x-2">
+                <ThemeToggle isDarkMode={isDarkMode} onToggle={(value) => setIsDarkMode(value)} />
+              </div>
+            </div>
 
-                    {githubConfig && (
-                      <button
-                        onClick={deployToGitHub}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+            {/* Navigation Tabs */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 shadow-inner">
+                {[
+                  { id: 'code', name: 'AI Code', icon: '💻' },
+                  { id: 'pipeline', name: 'ML Pipeline', icon: '🔄' },
+                  { id: 'projects', name: 'Projects', icon: '📁' },
+                  { id: 'github', name: 'GitHub', icon: '🐙' },
+                  { id: 'review', name: 'Code Review', icon: '🔍' },
+                ].map((view) => (
+                  <button
+                    key={view.id}
+                    onClick={() => setCurrentView(view.id as any)}
+                    className={`
+                      px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 min-w-[100px] justify-center
+                      ${currentView === view.id
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-gray-600'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-700/50'
+                      }
+                    `}
+                  >
+                    <span className="text-base">{view.icon}</span>
+                    <span className="hidden sm:inline">{view.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center space-x-3">
+                {currentView === 'pipeline' && (
+                  <button
+                    onClick={runMLPipeline}
+                    disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !backendConnected}
+                    className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
                         </svg>
-                        Deploy
-                      </button>
+                        Run ML Pipeline
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {currentView === 'code' && (
+                  <>
+                    {projectConfig && (
+                      <>
+                        <button
+                          onClick={runPipeline}
+                          disabled={pipelineStatus === PIPELINE_STATUS.RUNNING || isLoading || !projectConfig}
+                          className="inline-flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                          </svg>
+                          Start Pipeline
+                        </button>
+
+                        {githubConfig && (
+                          <button
+                            onClick={deployToGitHub}
+                            className="inline-flex items-center px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                          >
+                            <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                            </svg>
+                            Deploy
+                          </button>
+                        )}
+                      </>
+                    )}
+                    
+                    {!projectConfig && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2.5 rounded-xl">
+                        Create a project in the Projects tab to get started
+                      </div>
                     )}
                   </>
                 )}
-              </>
-            )}
-
-            <ThemeToggle isDarkMode={isDarkMode} onToggle={setIsDarkMode} />
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Main Content Area - Dual View System */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
           {/* Render different views based on currentView */}
           {currentView === 'code' && (
             <>
@@ -1434,6 +1456,7 @@ module.exports = app;`;
                 currentProject={currentProject}
                 onProjectSelect={handleProjectSelect}
                 onProjectCreate={handleProjectCreate}
+                onProjectLoad={handleProjectLoad}
                 onProjectDelete={handleProjectDelete}
               />
             </div>
@@ -1444,6 +1467,20 @@ module.exports = app;`;
               <GitHubIntegration
                 isVisible={true}
                 onConfigSave={handleGitHubConfigSave}
+              />
+            </div>
+          )}
+
+          {currentView === 'review' && (
+            <div className="flex-1 p-6 overflow-y-auto">
+              <AICodeReviewAssistant
+                files={files}
+                githubConfig={githubConfig}
+                geminiService={geminiService}
+                onCodeUpdate={(filename, content) => {
+                  setFiles(prev => ({ ...prev, [filename]: content }));
+                  addToTerminal(`📝 Applied code fix to ${filename}`);
+                }}
               />
             </div>
           )}

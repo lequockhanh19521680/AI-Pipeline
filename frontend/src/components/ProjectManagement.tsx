@@ -6,9 +6,12 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
   currentProject,
   onProjectSelect,
   onProjectCreate,
+  onProjectLoad,
   onProjectDelete,
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showProjectCreated, setShowProjectCreated] = useState(false);
+  const [createdProject, setCreatedProject] = useState<ProjectMetadata | null>(null);
   const [newProject, setNewProject] = useState<Partial<ProjectMetadata>>({
     name: '',
     description: '',
@@ -23,26 +26,39 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
       name: newProject.name,
       description: newProject.description,
       type: newProject.type as 'frontend' | 'backend' | 'fullstack',
-      createdAt: new Date(),
-      lastModified: new Date(),
+      projectType: newProject.type as 'frontend' | 'backend' | 'fullstack',
+      techStack: [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
       status: 'draft',
     };
 
     onProjectCreate(project);
+    setCreatedProject(project);
     setShowCreateModal(false);
+    setShowProjectCreated(true);
     setNewProject({ name: '', description: '', type: 'fullstack' });
   };
 
-  const getProjectStatusBadge = (status: string) => {
+  const handleStartPipeline = (project: ProjectMetadata) => {
+    // Load the project and switch to code view
+    onProjectLoad(project);
+    setShowProjectCreated(false);
+    // Here we would typically navigate to the code view
+    // This could be done through a callback to the parent component
+  };
+
+  const getProjectStatusBadge = (status?: string) => {
     const statusClasses = {
       draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
       'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
       completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     };
 
+    const statusToShow = status || 'draft';
     return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status as keyof typeof statusClasses]}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
+      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusClasses[statusToShow as keyof typeof statusClasses] || statusClasses.draft}`}>
+        {statusToShow.charAt(0).toUpperCase() + statusToShow.slice(1).replace('-', ' ')}
       </span>
     );
   };
@@ -90,9 +106,9 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
               <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
                 <span>Type: {currentProject.type}</span>
                 <span>•</span>
-                <span>Created: {new Date(currentProject.createdAt).toLocaleDateString()}</span>
+                <span>Created: {new Date(currentProject.createdAt || '').toLocaleDateString()}</span>
                 <span>•</span>
-                <span>Modified: {new Date(currentProject.lastModified).toLocaleDateString()}</span>
+                <span>Modified: {new Date(currentProject.lastModified || '').toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -136,7 +152,7 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
 
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span className="capitalize">{project.type}</span>
-              <span>{new Date(project.lastModified).toLocaleDateString()}</span>
+              <span>{new Date(project.lastModified || '').toLocaleDateString()}</span>
             </div>
 
             {project.mlPipelineId && (
@@ -236,6 +252,75 @@ const ProjectManagement: React.FC<ProjectManagementProps> = ({
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Created Successfully Modal */}
+      {showProjectCreated && createdProject && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                      Project Created Successfully!
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Your project "{createdProject.name}" has been created and is ready for development.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-2xl">{getTypeIcon(createdProject.type)}</div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{createdProject.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{createdProject.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Type: {createdProject.type}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mb-2">What would you like to do next?</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Start the AI Pipeline to generate your application</li>
+                    <li>Configure project requirements and specifications</li>
+                    <li>Set up GitHub integration for deployment</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={() => handleStartPipeline(createdProject)}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                  </svg>
+                  Start Pipeline
+                </button>
+                <button
+                  onClick={() => setShowProjectCreated(false)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Close
                 </button>
               </div>
             </div>
