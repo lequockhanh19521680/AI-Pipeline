@@ -81,6 +81,23 @@ def ingest_data(config):
         # Save processed data
         df.to_csv(output_dir / 'ingested_data.csv', index=False)
         
+        # Output structured JSON result for job queue processing
+        result = {
+            "status": "success",
+            "stage": "data_ingestion",
+            "outputs": {
+                "data_shape": df.shape,
+                "data_path": str(output_dir / 'ingested_data.csv'),
+                "summary_path": str(output_dir / 'data_summary.json'),
+                "columns": list(df.columns),
+                "numeric_columns": len(numeric_cols)
+            },
+            "artifacts": [
+                str(output_dir / 'ingested_data.csv'),
+                str(output_dir / 'data_summary.json')
+            ]
+        }
+        print(json.dumps(result))
         print("✅ Data ingestion completed successfully")
         return True
         

@@ -1,16 +1,25 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { spawn, ChildProcess } from 'child_process';
-import path from 'path';
-import fs from 'fs/promises';
-import yaml from 'js-yaml';
+import * as path from 'path';
+import { promises as fs } from 'fs';
+import * as yaml from 'js-yaml';
 import { MLPipelineConfig, PipelineExecution, MLPipelineStage } from '../../../shared/types/pipeline.js';
 import { PipelineEvent } from '../../../shared/interfaces/api.js';
+import { PipelineJobProcessor, PipelineJobData, PipelineJobResult } from '../jobs/PipelineJob.js';
 
 export class PipelineService {
   private executions: Map<string, PipelineExecution> = new Map();
   private processes: Map<string, ChildProcess> = new Map();
+  private jobProcessor: PipelineJobProcessor;
 
-  constructor(private io: SocketIOServer) {}
+  constructor(private io: SocketIOServer) {
+    // Initialize job processor with Redis connection
+    this.jobProcessor = new PipelineJobProcessor({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      db: parseInt(process.env.REDIS_DB || '0')
+    });
+  }
 
   async createPipeline(config: Partial<MLPipelineConfig>): Promise<MLPipelineConfig> {
     const pipelineId = `pipeline_${Date.now()}`;
@@ -189,61 +198,124 @@ export class PipelineService {
   }
 
   private async executeStage(pipelineId: string, stage: MLPipelineStage): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const pythonScript = path.join(process.cwd(), 'backend/src/ml-pipeline/stages', `${stage.id}.py`);
-      const configFile = path.join(process.cwd(), 'backend/src/ml-pipeline/configs', `${pipelineId}.yaml`);
+    const configFile = path.join(process.cwd(), 'backend/src/ml-pipeline/configs', `${pipelineId}.yaml`);
+    const scriptPath = `${stage.id}.py`;
 
-      const childProcess = spawn('python3', [pythonScript, configFile, stage.id], {
-        cwd: path.join(process.cwd(), 'backend/src/ml-pipeline')
-      });
+    // Create job data for the queue
+    const jobData: PipelineJobData = {
+      pipelineId,
+      stageId: stage.id,
+      stageName: stage.name,
+      scriptPath,
+      configFile,
+      args: [configFile, stage.id]
+    };
 
-      this.processes.set(`${pipelineId}-${stage.id}`, childProcess);
+    stage.status = 'running';
+    stage.startTime = new Date();
+    stage.logs = [];
 
-      stage.status = 'running';
-      stage.startTime = new Date();
-      stage.logs = [];
-
-      childProcess.stdout.on('data', (data: Buffer) => {
-        const log = data.toString();
-        stage.logs.push(log);
-        
-        this.emitEvent(pipelineId, {
-          type: 'log',
-          pipelineId,
-          stageId: stage.id,
-          data: { level: 'info', message: log.trim() },
-          timestamp: new Date()
-        });
-      });
-
-      childProcess.stderr.on('data', (data: Buffer) => {
-        const log = data.toString();
-        stage.logs.push(log);
-        
-        this.emitEvent(pipelineId, {
-          type: 'log',
-          pipelineId,
-          stageId: stage.id,
-          data: { level: 'error', message: log.trim() },
-          timestamp: new Date()
-        });
-      });
-
-      childProcess.on('close', (code: number | null) => {
-        this.processes.delete(`${pipelineId}-${stage.id}`);
-        
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Stage ${stage.name} failed with exit code ${code}`));
-        }
-      });
-
-      childProcess.on('error', (error: Error) => {
-        this.processes.delete(`${pipelineId}-${stage.id}`);
-        reject(error);
-      });
+    this.emitEvent(pipelineId, {
+      type: 'log',
+      pipelineId,
+      stageId: stage.id,
+      data: { level: 'info', message: `Starting stage ${stage.name} via job queue` },
+      timestamp: new Date()
     });
+
+    try {
+      // Add job to queue and wait for completion
+      const job = await this.jobProcessor.addPipelineJob(jobData);
+      
+      // Wait for job completion (simplified approach)
+      const result = await new Promise<PipelineJobResult>((resolve, reject) => {
+        const checkJobStatus = async () => {
+          try {
+            const jobState = await job.getState();
+            if (jobState === 'completed') {
+              const jobResult = job.returnvalue as PipelineJobResult;
+              resolve(jobResult);
+            } else if (jobState === 'failed') {
+              reject(new Error(job.failedReason || 'Job failed'));
+            } else {
+              // Job still processing, check again in 1 second
+              setTimeout(checkJobStatus, 1000);
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+        checkJobStatus();
+      });
+      
+      if (result && typeof result === 'object' && 'success' in result) {
+        
+        // Add all logs from stdout and stderr
+        if (result.stdout) {
+          const stdoutLines = result.stdout.split('\n').filter(line => line.trim());
+          stage.logs.push(...stdoutLines);
+          
+          stdoutLines.forEach(line => {
+            this.emitEvent(pipelineId, {
+              type: 'log',
+              pipelineId,
+              stageId: stage.id,
+              data: { level: 'info', message: line.trim() },
+              timestamp: new Date()
+            });
+          });
+        }
+
+        if (result.stderr) {
+          const stderrLines = result.stderr.split('\n').filter(line => line.trim());
+          stage.logs.push(...stderrLines);
+          
+          stderrLines.forEach(line => {
+            this.emitEvent(pipelineId, {
+              type: 'log',
+              pipelineId,
+              stageId: stage.id,
+              data: { level: 'error', message: line.trim() },
+              timestamp: new Date()
+            });
+          });
+        }
+
+        // Update stage with results
+        stage.outputs = result.outputs || {};
+        stage.artifacts = result.artifacts || [];
+
+        if (!result.success) {
+          throw new Error(result.error || `Stage failed with exit code ${result.exitCode}`);
+        }
+
+        this.emitEvent(pipelineId, {
+          type: 'log',
+          pipelineId,
+          stageId: stage.id,
+          data: { level: 'info', message: `Stage ${stage.name} completed successfully` },
+          timestamp: new Date()
+        });
+
+      } else {
+        throw new Error('Job failed to return valid result');
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown job execution error';
+      
+      stage.logs.push(`ERROR: ${errorMessage}`);
+      
+      this.emitEvent(pipelineId, {
+        type: 'log',
+        pipelineId,
+        stageId: stage.id,
+        data: { level: 'error', message: errorMessage },
+        timestamp: new Date()
+      });
+
+      throw error;
+    }
   }
 
   private emitEvent(pipelineId: string, event: PipelineEvent): void {
@@ -254,6 +326,10 @@ export class PipelineService {
     return this.executions.get(pipelineId) || null;
   }
 
+  async getQueueStatus(): Promise<any> {
+    return await this.jobProcessor.getQueueInfo();
+  }
+
   async stopPipeline(pipelineId: string): Promise<void> {
     const execution = this.executions.get(pipelineId);
     if (execution) {
@@ -262,7 +338,8 @@ export class PipelineService {
     }
 
     // Kill all processes for this pipeline
-    for (const [processId, childProcess] of this.processes.entries()) {
+    const processEntries = Array.from(this.processes.entries());
+    for (const [processId, childProcess] of processEntries) {
       if (processId.startsWith(pipelineId)) {
         childProcess.kill();
         this.processes.delete(processId);
