@@ -64,11 +64,13 @@ export interface GeneratedCode {
 
 // WebSocket event types
 export interface PipelineEvent {
-  type: 'stage_started' | 'stage_completed' | 'stage_failed' | 'pipeline_completed' | 'pipeline_failed' | 'log';
-  pipelineId: string;
+  type: 'stage_started' | 'stage_completed' | 'stage_failed' | 'pipeline_completed' | 'pipeline_failed' | 'log' | 
+        'pipeline-start' | 'node-start' | 'node-complete' | 'pipeline-complete' | 'pipeline-error' | 'output-display';
+  pipelineId?: string;
   stageId?: string;
+  nodeId?: string;
   data?: any;
-  timestamp: Date;
+  timestamp?: Date;
 }
 
 export interface LogEvent {

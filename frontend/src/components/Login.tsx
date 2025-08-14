@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faExclamationCircle, faSpinner, faSignInAlt } from '@fortawesome/free-solid-svg-icons';
+import { faGithub, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { useAuthStore } from '../store/authStore';
 import backendAPI from '../services/BackendAPI';
 
@@ -15,8 +18,24 @@ const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToRegister, className 
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState<'github' | 'google' | null>(null);
   
   const { login, setLoading } = useAuthStore();
+
+  const handleOAuthLogin = async (provider: 'github' | 'google') => {
+    setIsOAuthLoading(provider);
+    setErrors([]);
+    
+    try {
+      // Redirect to OAuth provider
+      const redirectUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/auth/${provider}`;
+      window.location.href = redirectUrl;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'OAuth login failed';
+      setErrors([errorMessage]);
+      setIsOAuthLoading(null);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -62,12 +81,59 @@ const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToRegister, className 
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 mb-4">
           {errors.map((error, index) => (
             <p key={index} className="text-red-600 dark:text-red-400 text-sm">
-              <i className="fas fa-exclamation-circle mr-2"></i>
+              <FontAwesomeIcon icon={faExclamationCircle} className="mr-2" />
               {error}
             </p>
           ))}
         </div>
       )}
+
+      {/* OAuth Buttons */}
+      <div className="space-y-3 mb-6">
+        <button
+          onClick={() => handleOAuthLogin('github')}
+          disabled={isLoading || isOAuthLoading !== null}
+          className="w-full bg-gray-900 hover:bg-gray-800 disabled:bg-gray-600 
+                   text-white font-medium py-3 px-4 rounded-lg
+                   transition-colors duration-200 
+                   focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
+                   disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {isOAuthLoading === 'github' ? (
+            <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+          ) : (
+            <FontAwesomeIcon icon={faGithub} className="mr-2" />
+          )}
+          Continue with GitHub
+        </button>
+
+        <button
+          onClick={() => handleOAuthLogin('google')}
+          disabled={isLoading || isOAuthLoading !== null}
+          className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 
+                   text-white font-medium py-3 px-4 rounded-lg
+                   transition-colors duration-200 
+                   focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+                   disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {isOAuthLoading === 'google' ? (
+            <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+          ) : (
+            <FontAwesomeIcon icon={faGoogle} className="mr-2" />
+          )}
+          Continue with Google
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400">Or continue with email</span>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -110,7 +176,7 @@ const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToRegister, className 
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || isOAuthLoading !== null}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 
                    text-white font-medium py-2 px-4 rounded-lg
                    transition-colors duration-200 
@@ -119,12 +185,12 @@ const Login: React.FC<LoginProps> = ({ onSuccess, onSwitchToRegister, className 
         >
           {isLoading ? (
             <>
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
               Signing In...
             </>
           ) : (
             <>
-              <i className="fas fa-sign-in-alt mr-2"></i>
+              <FontAwesomeIcon icon={faSignInAlt} className="mr-2" />
               Sign In
             </>
           )}

@@ -29,13 +29,14 @@ router.post('/',
     body('techStack').optional().isObject().withMessage('Tech stack must be an object')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
+      const user = (req as AuthenticatedRequest).user!;
       const projectData = {
         name: req.body.name,
         description: req.body.description,
         projectType: req.body.projectType,
-        ownerId: (req.user!._id as any).toString(), // Use authenticated user ID
+        ownerId: (user._id as any).toString(), // Use authenticated user ID
         files: req.body.files || {},
         techStack: req.body.techStack || {}
       };
@@ -67,14 +68,15 @@ router.get('/',
     query('projectType').optional().isIn(['frontend', 'backend', 'fullstack']).withMessage('Invalid project type')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
+      const user = (req as AuthenticatedRequest).user!;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
       // Build filter - only show user's own projects
-      const filter: any = { ownerId: (req.user!._id as any).toString() };
+      const filter: any = { ownerId: (user._id as any).toString() };
       if (req.query.status) filter.status = req.query.status;
       if (req.query.projectType) filter.projectType = req.query.projectType;
 
@@ -114,11 +116,11 @@ router.get('/:id',
     param('id').isMongoId().withMessage('Invalid project ID')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const project = await Project.findOne({ 
         _id: req.params.id, 
-        ownerId: (req.user!._id as any).toString() 
+        ownerId: (((req as AuthenticatedRequest).user!)._id as any).toString() 
       });
       
       if (!project) {
@@ -155,14 +157,14 @@ router.put('/:id',
     body('status').optional().isIn(['draft', 'active', 'completed', 'archived']).withMessage('Invalid status')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const updateData = { ...req.body };
       delete updateData.ownerId; // Prevent changing owner
       delete updateData._id; // Prevent changing ID
 
       const project = await Project.findOneAndUpdate(
-        { _id: req.params.id, ownerId: (req.user!._id as any).toString() },
+        { _id: req.params.id, ownerId: (((req as AuthenticatedRequest).user!)._id as any).toString() },
         updateData,
         { new: true, runValidators: true }
       );
@@ -195,11 +197,11 @@ router.delete('/:id',
     param('id').isMongoId().withMessage('Invalid project ID')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const project = await Project.findOneAndDelete({ 
         _id: req.params.id, 
-        ownerId: (req.user!._id as any).toString() 
+        ownerId: (((req as AuthenticatedRequest).user!)._id as any).toString() 
       });
 
       if (!project) {

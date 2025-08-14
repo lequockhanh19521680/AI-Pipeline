@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 export interface IUser extends Document {
   username: string;
   email: string;
-  password: string;
+  password?: string; // Optional for OAuth users
   role: 'user' | 'admin';
   profile: {
     firstName?: string;
@@ -14,6 +14,20 @@ export interface IUser extends Document {
   preferences: {
     theme: 'light' | 'dark';
     notifications: boolean;
+  };
+  oauth: {
+    providers: {
+      github?: {
+        id: string;
+        username: string;
+        avatar?: string;
+      };
+      google?: {
+        id: string;
+        email: string;
+        avatar?: string;
+      };
+    };
   };
   lastLogin?: Date;
   isActive: boolean;
@@ -38,7 +52,10 @@ const UserSchema: Schema = new Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function(this: IUser) {
+      // Password is only required if no OAuth providers are configured
+      return !this.oauth?.providers?.github && !this.oauth?.providers?.google;
+    },
     minlength: 6
   },
   role: {
@@ -70,6 +87,20 @@ const UserSchema: Schema = new Schema({
       default: true
     }
   },
+  oauth: {
+    providers: {
+      github: {
+        id: String,
+        username: String,
+        avatar: String
+      },
+      google: {
+        id: String,
+        email: String,
+        avatar: String
+      }
+    }
+  },
   lastLogin: {
     type: Date
   },
@@ -87,9 +118,9 @@ const UserSchema: Schema = new Schema({
   }
 });
 
-// Hash password before saving
+// Hash password before saving (only if password exists)
 UserSchema.pre('save', async function(this: IUser, next) {
-  if (!this.isModified('password')) return next();
+  if (!this.password || !this.isModified('password')) return next();
   
   try {
     const salt = await bcrypt.genSalt(10);
@@ -100,8 +131,9 @@ UserSchema.pre('save', async function(this: IUser, next) {
   }
 });
 
-// Compare password method
+// Compare password method (handle OAuth users without passwords)
 UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  if (!this.password) return false; // OAuth users don't have passwords
   return bcrypt.compare(candidatePassword, this.password);
 };
 

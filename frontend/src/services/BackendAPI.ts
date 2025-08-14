@@ -73,6 +73,28 @@ class BackendAPIService implements BackendAPI {
     });
   }
 
+  // Dynamic Pipeline operations
+  async executeDynamicPipeline(pipeline: any): Promise<{ executionId: string; pipeline: any }> {
+    const response = await this.request<{ data: { executionId: string; pipeline: any } }>('/pipeline/execute/dynamic', {
+      method: 'POST',
+      body: JSON.stringify({ pipeline }),
+    });
+    return response.data;
+  }
+
+  async validatePipeline(pipeline: any): Promise<any> {
+    const response = await this.request<{ data: any }>('/pipeline/validate', {
+      method: 'POST',
+      body: JSON.stringify({ pipeline }),
+    });
+    return response.data;
+  }
+
+  async getPipelineTemplates(): Promise<any[]> {
+    const response = await this.request<{ data: any[] }>('/pipeline/templates');
+    return response.data;
+  }
+
   // GitHub operations
   async validateToken(token: string): Promise<{ valid: boolean; user?: string }> {
     const response = await this.request<{ valid: boolean; user?: string }>('/github/validate-token', {

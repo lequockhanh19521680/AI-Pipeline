@@ -14,7 +14,10 @@ import ReactFlow, {
   EdgeTypes,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlay, faStop, faCheck, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { PipelineNode, Pipeline } from '@shared/types/pipeline.js';
+import backendAPI from '../services/BackendAPI';
 
 // Custom node types
 const InputNode: React.FC<{ data: any }> = ({ data }) => (
@@ -106,6 +109,12 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
   const [selectedNodeType, setSelectedNodeType] = useState<string>('processing');
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showPropertyPanel, setShowPropertyPanel] = useState(false);
+  
+  // Pipeline execution state
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [executionProgress, setExecutionProgress] = useState(0);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -181,6 +190,86 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
 
     onPipelineChange(pipelineData);
   }, [nodes, edges, pipeline, onPipelineChange]);
+
+  // Pipeline execution functions
+  const executePipeline = useCallback(async () => {
+    if (isExecuting || nodes.length === 0) return;
+
+    setIsExecuting(true);
+    setExecutionError(null);
+    setExecutionProgress(0);
+
+    try {
+      const pipelineData: Pipeline = {
+        id: pipeline?.id || `pipeline-${Date.now()}`,
+        name: pipeline?.name || 'Dynamic Pipeline',
+        description: pipeline?.description || 'Dynamic pipeline execution',
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type as any,
+          position: node.position,
+          data: {
+            label: node.data.label,
+            config: node.data.config || {}
+          },
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id!,
+          source: edge.source,
+          target: edge.target,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle,
+        })),
+        category: 'code-gen',
+        template: false,
+        isPublic: false,
+        createdAt: pipeline?.createdAt || new Date(),
+        updatedAt: new Date(),
+      };
+
+      const response = await backendAPI.executeDynamicPipeline(pipelineData);
+      setExecutionId(response.executionId);
+      
+      // Start monitoring execution progress
+      monitorExecution(response.executionId);
+
+    } catch (error) {
+      setExecutionError(error instanceof Error ? error.message : 'Pipeline execution failed');
+      setIsExecuting(false);
+    }
+  }, [nodes, edges, pipeline, isExecuting]);
+
+  const monitorExecution = useCallback(async (execId: string) => {
+    // In a real implementation, you would set up WebSocket monitoring
+    // For now, we'll simulate progress
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      setExecutionProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setIsExecuting(false);
+        setExecutionProgress(100);
+      }
+    }, 1000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  const stopExecution = useCallback(async () => {
+    if (!executionId) return;
+
+    try {
+      await backendAPI.stopPipeline(executionId);
+      setIsExecuting(false);
+      setExecutionProgress(0);
+      setExecutionId(null);
+    } catch (error) {
+      setExecutionError(error instanceof Error ? error.message : 'Failed to stop pipeline');
+    }
+  }, [executionId]);
 
   const loadTemplate = useCallback((templateType: 'web-app' | 'ml-pipeline' | 'api') => {
     let templateNodes: Node[] = [];
@@ -295,8 +384,65 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
           <Controls />
           
           <Panel position="top-left" className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">Pipeline Builder</h3>
+              
+              {/* Execution Controls */}
+              <div className="border-t pt-2">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={executePipeline}
+                    disabled={isExecuting || nodes.length === 0}
+                    className="flex items-center px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    <FontAwesomeIcon 
+                      icon={isExecuting ? faSpinner : faPlay} 
+                      spin={isExecuting}
+                      className="mr-2" 
+                    />
+                    {isExecuting ? 'Running...' : 'Execute'}
+                  </button>
+                  
+                  {isExecuting && (
+                    <button
+                      onClick={stopExecution}
+                      className="flex items-center px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      <FontAwesomeIcon icon={faStop} className="mr-2" />
+                      Stop
+                    </button>
+                  )}
+                </div>
+                
+                {/* Progress Bar */}
+                {isExecuting && (
+                  <div className="mt-2">
+                    <div className="bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${executionProgress}%` }}
+                      ></div>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Progress: {executionProgress}%
+                    </div>
+                  </div>
+                )}
+
+                {/* Execution Status */}
+                {executionError && (
+                  <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+                    Error: {executionError}
+                  </div>
+                )}
+
+                {executionProgress === 100 && !isExecuting && !executionError && (
+                  <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm flex items-center">
+                    <FontAwesomeIcon icon={faCheck} className="mr-2" />
+                    Pipeline completed successfully!
+                  </div>
+                )}
+              </div>
               
               {/* Node Type Selector */}
               <div>

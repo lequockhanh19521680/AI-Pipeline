@@ -14,6 +14,20 @@ export interface User {
     theme: 'light' | 'dark';
     notifications: boolean;
   };
+  oauth?: {
+    providers: {
+      github?: {
+        id: string;
+        username: string;
+        avatar?: string;
+      };
+      google?: {
+        id: string;
+        email: string;
+        avatar?: string;
+      };
+    };
+  };
 }
 
 interface AuthState {
