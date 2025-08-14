@@ -45,6 +45,9 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedExecutions, setSelectedExecutions] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   useEffect(() => {
     fetchPipelineData();
@@ -132,6 +135,33 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
     }
   };
 
+  const toggleExecutionSelection = (executionId: string) => {
+    setSelectedExecutions(prev => {
+      if (prev.includes(executionId)) {
+        return prev.filter(id => id !== executionId);
+      } else if (prev.length < 3) { // Limit to 3 comparisons
+        return [...prev, executionId];
+      }
+      return prev;
+    });
+  };
+
+  const getComparisonData = () => {
+    const selectedExecs = executions.filter(exec => selectedExecutions.includes(exec.id));
+    return selectedExecs.map(exec => {
+      const duration = exec.duration || 0;
+      return {
+        id: exec.id,
+        name: `Run ${exec.id.slice(-6)}`,
+        duration: duration,
+        status: exec.status,
+        accuracy: Math.random() * 100, // Mock accuracy for demo - would come from results
+        stages: exec.stages?.length || 0,
+        timestamp: exec.startTime
+      };
+    });
+  };
+
   const formatDuration = (ms: number): string => {
     const minutes = Math.floor(ms / 60000);
     const seconds = Math.floor((ms % 60000) / 1000);
@@ -166,23 +196,33 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Pipeline Monitoring Dashboard
         </h2>
-        <button
-          onClick={fetchPipelineData}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <i className="fas fa-spinner fa-spin mr-2"></i>
-              Refreshing...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-sync-alt mr-2"></i>
-              Refresh
-            </>
+        <div className="flex items-center space-x-3">
+          {selectedExecutions.length > 1 && (
+            <button
+              onClick={() => setShowComparison(!showComparison)}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              {showComparison ? 'Hide' : 'Show'} Comparison ({selectedExecutions.length})
+            </button>
           )}
-        </button>
+          <button
+            onClick={fetchPipelineData}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-sync-alt mr-2"></i>
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Error State */}
@@ -328,6 +368,19 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 dark:border-gray-600"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedExecutions(executions.slice(0, 3).map(exec => exec.id));
+                          } else {
+                            setSelectedExecutions([]);
+                          }
+                        }}
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duration</th>
@@ -338,6 +391,15 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {executions.slice(0, 10).map((execution) => (
                     <tr key={execution.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 py-3 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selectedExecutions.includes(execution.id)}
+                          onChange={() => toggleExecutionSelection(execution.id)}
+                          disabled={!selectedExecutions.includes(execution.id) && selectedExecutions.length >= 3}
+                          className="rounded border-gray-300 dark:border-gray-600"
+                        />
+                      </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {execution.name}
                       </td>
@@ -367,6 +429,113 @@ const PipelineDashboard: React.FC<PipelineDashboardProps> = ({ className = '' })
             </div>
           </div>
         </>
+      )}
+
+      {/* Comparison View */}
+      {showComparison && selectedExecutions.length > 1 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Pipeline Execution Comparison
+          </h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Duration Comparison */}
+            <div>
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">Duration Comparison</h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={getComparisonData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [formatDuration(value as number), 'Duration']} />
+                  <Bar dataKey="duration" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Accuracy Comparison */}
+            <div>
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">Performance Metrics</h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={getComparisonData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`${(value as number).toFixed(2)}%`, 'Accuracy']} />
+                  <Line type="monotone" dataKey="accuracy" stroke="#10B981" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Detailed Comparison Table */}
+          <div className="mt-6">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">Detailed Comparison</h4>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Execution
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Accuracy
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Stages
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {getComparisonData().map((exec) => (
+                    <tr key={exec.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {exec.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          exec.status === 'completed' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : exec.status === 'failed'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}>
+                          {exec.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                        {formatDuration(exec.duration)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                        {exec.accuracy.toFixed(2)}%
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                        {exec.stages}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={() => toggleExecutionSelection(exec.id)}
+                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Empty State */}

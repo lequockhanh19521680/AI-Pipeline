@@ -12,6 +12,8 @@ import PipelineFlow from './components/PipelineFlow';
 import StageDetailModal from './components/StageDetailModal';
 import ProjectManagement from './components/ProjectManagement';
 import GitHubIntegration from './components/GitHubIntegration';
+import AdvancedPipelineBuilder from './components/AdvancedPipelineBuilder';
+import PipelineDashboard from './components/PipelineDashboard';
 import AICodeReviewAssistant from './components/AICodeReviewAssistant';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -233,6 +235,7 @@ const App: React.FC = () => {
   
   // UI State
   const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github' | 'review'>('code');
+  const [pipelineView, setPipelineView] = useState<'builder' | 'flow' | 'dashboard'>('builder');
   const [backendConnected, setBackendConnected] = useState<boolean>(false);
 
   // Initialize theme on mount and load data
@@ -1639,52 +1642,122 @@ module.exports = app;`;
 
           {currentView === 'pipeline' && (
             <div className="flex-1 flex flex-col">
-              <div className="flex-1 bg-gray-50 dark:bg-gray-900">
-                <PipelineFlow
-                  stages={mlPipelineStages}
-                  currentStage={appState.currentStage || undefined}
-                  onStageClick={handleStageClick}
-                  onStageHover={handleStageHover}
-                  nodes={[]}
-                  edges={[]}
-                  onNodesChange={() => {}}
-                  onEdgesChange={() => {}}
-                  onConnect={() => {}}
-                  onNodeClick={() => {}}
-                />
-              </div>
-              
-              {/* Pipeline Info Panel */}
-              <div className="h-64 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 overflow-y-auto">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Pipeline Status</h3>
-                <div className="space-y-2">
-                  {currentMLPipeline && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <strong>Pipeline:</strong> {currentMLPipeline.name}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-5 gap-2">
-                    {mlPipelineStages.map((stage) => (
-                      <div
-                        key={stage.id}
-                        className={`p-2 rounded text-center text-xs cursor-pointer transition-colors ${
-                          stage.status === 'running'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                            : stage.status === 'completed'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                            : stage.status === 'error'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                        }`}
-                        onClick={() => handleStageClick(stage.id)}
-                      >
-                        <div className="font-medium">{stage.name}</div>
-                        <div className="capitalize">{stage.status}</div>
-                      </div>
-                    ))}
-                  </div>
+              {/* Pipeline Sub-Navigation */}
+              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-900 rounded-xl p-1">
+                  {[
+                    { id: 'builder', name: 'Pipeline Builder', icon: '🔧' },
+                    { id: 'flow', name: 'Execution Flow', icon: '🔄' },
+                    { id: 'dashboard', name: 'Dashboard', icon: '📊' },
+                  ].map((view) => (
+                    <button
+                      key={view.id}
+                      onClick={() => setPipelineView(view.id as any)}
+                      className={`
+                        px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex items-center space-x-2 min-w-[120px] justify-center
+                        ${pipelineView === view.id
+                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-gray-600'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-700/50'
+                        }
+                      `}
+                    >
+                      <span className="text-base">{view.icon}</span>
+                      <span>{view.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
+
+              {/* Pipeline Content Area */}
+              <div className="flex-1 flex flex-col">
+                {pipelineView === 'builder' && (
+                  <AdvancedPipelineBuilder
+                    pipeline={currentMLPipeline ? {
+                      id: currentMLPipeline.id,
+                      name: currentMLPipeline.name,
+                      description: currentMLPipeline.description,
+                      nodes: [],
+                      edges: [],
+                      category: 'data-processing' as const,
+                      createdAt: new Date(),
+                      updatedAt: new Date()
+                    } : undefined}
+                    onPipelineChange={(pipeline) => {
+                      // Convert pipeline to MLPipelineConfig format
+                      const mlConfig: MLPipelineConfig = {
+                        id: pipeline.id,
+                        name: pipeline.name,
+                        description: pipeline.description,
+                        stages: pipeline.nodes.map(node => ({
+                          id: node.id,
+                          name: node.data.label,
+                          status: 'idle' as const,
+                          logs: [],
+                          outputs: {},
+                          artifacts: []
+                        }))
+                      };
+                      setCurrentMLPipeline(mlConfig);
+                    }}
+                    className="flex-1"
+                  />
+                )}
+                
+                {pipelineView === 'flow' && (
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-900">
+                    <PipelineFlow
+                      stages={mlPipelineStages}
+                      currentStage={appState.currentStage || undefined}
+                      onStageClick={handleStageClick}
+                      onStageHover={handleStageHover}
+                      nodes={[]}
+                      edges={[]}
+                      onNodesChange={() => {}}
+                      onEdgesChange={() => {}}
+                      onConnect={() => {}}
+                      onNodeClick={() => {}}
+                    />
+                  </div>
+                )}
+                
+                {pipelineView === 'dashboard' && (
+                  <PipelineDashboard className="flex-1" />
+                )}
+              </div>
+              
+              {/* Pipeline Info Panel - Only show for flow view */}
+              {pipelineView === 'flow' && (
+                <div className="h-64 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 overflow-y-auto">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Pipeline Status</h3>
+                  <div className="space-y-2">
+                    {currentMLPipeline && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <strong>Pipeline:</strong> {currentMLPipeline.name}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-5 gap-2">
+                      {mlPipelineStages.map((stage) => (
+                        <div
+                          key={stage.id}
+                          className={`p-2 rounded text-center text-xs cursor-pointer transition-colors ${
+                            stage.status === 'running'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                              : stage.status === 'completed'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                              : stage.status === 'error'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                          }`}
+                          onClick={() => handleStageClick(stage.id)}
+                        >
+                          <div className="font-medium">{stage.name}</div>
+                          <div className="capitalize">{stage.status}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

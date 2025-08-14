@@ -3,6 +3,9 @@ export * from '@shared/types/pipeline';
 export * from '@shared/interfaces/api';
 export * from '@shared/interfaces/common';
 
+// Import specific types for explicit use
+import type { MLPipelineStage } from '@shared/types/pipeline';
+
 // BackendError class for compatibility (was interface in shared)
 export class BackendError extends Error {
   constructor(
@@ -13,33 +16,6 @@ export class BackendError extends Error {
     super(message);
     this.name = 'BackendError';
   }
-}
-
-// Legacy types still used in components that need to be maintained
-export interface ProjectMetadata {
-  id: string;
-  name: string;
-  type: 'frontend' | 'backend' | 'fullstack';
-  projectType: 'frontend' | 'backend' | 'fullstack';
-  techStack: string[];
-  description: string;
-  pipelineConfig?: PipelineConfig;
-  status?: string;
-  lastModified?: string;
-  createdAt?: string;
-  mlPipelineId?: string;
-}
-
-export interface MLPipelineStageType {
-  id: string;
-  name: string;
-  status: 'idle' | 'running' | 'completed' | 'error';
-  startTime?: Date;
-  endTime?: Date;
-  logs: string[];
-  outputs: any;
-  artifacts: string[];
-  progress?: number;
 }
 
 export class PipelineError extends Error {
@@ -160,36 +136,21 @@ export interface TerminalProps {
 }
 
 // Type aliases for compatibility with duplicated types that might still exist
-export type MLPipelineStage = MLPipelineStageType;
+export type MLPipelineStageType = MLPipelineStage;
 
-export interface ThemeToggleProps {
-  isDarkMode: boolean;
-  onToggle: (value: boolean) => void;
-  className?: string;
-}
-
-export interface PipelineProps {
-  status: PipelineStatus;
-  apiKey: string;
-  onApiKeyChange: (key: string) => void;
-  currentStage: string | null;
-  stageResults: StageResults;
-  stages: any[];
-  className?: string;
-}
-
-export interface PipelineFlowProps {
-  stages: MLPipelineStageType[];
-  currentStage: string | undefined;
-  onStageClick: (stageId: string) => void;
-  onStageHover: (stageId: string | null) => void;
-  nodes: any[];
-  edges: any[];
-  onNodesChange: (changes: any[]) => void;
-  onEdgesChange: (changes: any[]) => void;
-  onConnect: (params: any) => void;
-  onNodeClick: (event: any, node: any) => void;
-  className?: string;
+// Legacy types still used in components that need to be maintained
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+  type: 'frontend' | 'backend' | 'fullstack';
+  projectType: 'frontend' | 'backend' | 'fullstack';
+  techStack: string[];
+  description: string;
+  pipelineConfig?: PipelineConfig;
+  status?: string;
+  lastModified?: string;
+  createdAt?: string;
+  mlPipelineId?: string;
 }
 
 export interface ThemeToggleProps {
@@ -219,6 +180,12 @@ export interface PipelineFlowProps {
   onEdgesChange: (changes: any[]) => void;
   onConnect: (params: any) => void;
   onNodeClick: (event: any, node: any) => void;
+  className?: string;
+}
+
+export interface ThemeToggleProps {
+  isDarkMode: boolean;
+  onToggle: (value: boolean) => void;
   className?: string;
 }
 
@@ -323,17 +290,6 @@ export interface GeminiResponse {
       }>;
     };
   }>;
-}
-
-export interface MLPipelineStageType {
-  id: string;
-  name: string;
-  status: 'idle' | 'running' | 'completed' | 'error';
-  startTime?: Date;
-  endTime?: Date;
-  logs: string[];
-  outputs: any;
-  artifacts: string[];
 }
 
 export class GeminiError extends Error {

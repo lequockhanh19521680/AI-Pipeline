@@ -227,26 +227,11 @@ export class PipelineService {
       // Add job to queue and wait for completion
       const job = await this.jobProcessor.addPipelineJob(jobData);
       
-      // Wait for job completion (simplified approach)
-      const result = await new Promise<PipelineJobResult>((resolve, reject) => {
-        const checkJobStatus = async () => {
-          try {
-            const jobState = await job.getState();
-            if (jobState === 'completed') {
-              const jobResult = job.returnvalue as PipelineJobResult;
-              resolve(jobResult);
-            } else if (jobState === 'failed') {
-              reject(new Error(job.failedReason || 'Job failed'));
-            } else {
-              // Job still processing, check again in 1 second
-              setTimeout(checkJobStatus, 1000);
-            }
-          } catch (error) {
-            reject(error);
-          }
-        };
-        checkJobStatus();
-      });
+      // Wait for job completion using BullMQ's event-driven approach
+      const result = await job.waitUntilFinished(
+        this.jobProcessor.getQueueEvents(),
+        30000 // 30 second timeout
+      ) as PipelineJobResult;
       
       if (result && typeof result === 'object' && 'success' in result) {
         
@@ -335,9 +320,24 @@ export class PipelineService {
     if (execution) {
       execution.status = 'error';
       execution.endTime = new Date();
+
+      this.emitEvent(pipelineId, {
+        type: 'pipeline_failed',
+        pipelineId,
+        data: { reason: 'Pipeline cancelled by user' },
+        timestamp: new Date()
+      });
     }
 
-    // Kill all processes for this pipeline
+    // Cancel jobs in BullMQ queue for this pipeline
+    try {
+      await this.jobProcessor.cancelPipelineJobs(pipelineId);
+      console.log(`✅ Successfully cancelled all jobs for pipeline ${pipelineId}`);
+    } catch (error) {
+      console.error(`Failed to cancel jobs for pipeline ${pipelineId}:`, error);
+    }
+
+    // Legacy process cleanup (kept for safety, but should not be needed)
     const processEntries = Array.from(this.processes.entries());
     for (const [processId, childProcess] of processEntries) {
       if (processId.startsWith(pipelineId)) {
