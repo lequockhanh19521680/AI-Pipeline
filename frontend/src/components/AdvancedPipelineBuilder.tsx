@@ -104,11 +104,18 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeType, setSelectedNodeType] = useState<string>('processing');
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [showPropertyPanel, setShowPropertyPanel] = useState(false);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+    setShowPropertyPanel(true);
+  }, []);
 
   const addNode = useCallback((type: string) => {
     const newNode: Node = {
@@ -124,6 +131,26 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
     };
     setNodes((nds) => nds.concat(newNode));
   }, [nodes.length, setNodes]);
+
+  const updateNodeData = useCallback((nodeId: string, newData: any) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, ...newData } } : node
+      )
+    );
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, ...newData } });
+    }
+  }, [setNodes, selectedNode]);
+
+  const deleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+      setShowPropertyPanel(false);
+    }
+  }, [setNodes, setEdges, selectedNode]);
 
   const savePipeline = useCallback(() => {
     if (!onPipelineChange) return;
@@ -252,31 +279,32 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
   }, [setNodes, setEdges]);
 
   return (
-    <div className={`h-full ${className}`}>
-      <div style={{ height: '600px' }}>
+    <div className={`h-full ${className} flex`}>
+      <div className="flex-1" style={{ height: '600px' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
         >
           <Background variant={BackgroundVariant.Dots} />
           <Controls />
           
-          <Panel position="top-left" className="bg-white p-4 rounded shadow-lg">
+          <Panel position="top-left" className="bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
             <div className="space-y-2">
-              <h3 className="font-bold text-lg">Pipeline Builder</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">Pipeline Builder</h3>
               
               {/* Node Type Selector */}
               <div>
-                <label className="block text-sm font-medium mb-1">Add Node:</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Add Node:</label>
                 <select
                   value={selectedNodeType}
                   onChange={(e) => setSelectedNodeType(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="input">Input</option>
                   <option value="processing">Processing</option>
@@ -294,7 +322,7 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
 
               {/* Templates */}
               <div>
-                <label className="block text-sm font-medium mb-1">Templates:</label>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Templates:</label>
                 <div className="space-y-1">
                   <button
                     onClick={() => loadTemplate('web-app')}
@@ -322,6 +350,97 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
           </Panel>
         </ReactFlow>
       </div>
+
+      {/* Properties Panel */}
+      {showPropertyPanel && selectedNode && (
+        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Node Properties</h3>
+            <button
+              onClick={() => setShowPropertyPanel(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Node ID:</label>
+              <input
+                type="text"
+                value={selectedNode.id}
+                disabled
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Label:</label>
+              <input
+                type="text"
+                value={selectedNode.data.label}
+                onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Type:</label>
+              <input
+                type="text"
+                value={selectedNode.data.type}
+                disabled
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            {selectedNode.data.type === 'ai' && (
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">AI Model:</label>
+                <select
+                  value={selectedNode.data.config?.model || 'gpt-4'}
+                  onChange={(e) => updateNodeData(selectedNode.id, { 
+                    config: { ...selectedNode.data.config, model: e.target.value }
+                  })}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                  <option value="claude-3">Claude 3</option>
+                  <option value="gemini-pro">Gemini Pro</option>
+                </select>
+              </div>
+            )}
+
+            {selectedNode.data.type === 'processing' && (
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Processing Type:</label>
+                <select
+                  value={selectedNode.data.config?.processingType || 'transform'}
+                  onChange={(e) => updateNodeData(selectedNode.id, { 
+                    config: { ...selectedNode.data.config, processingType: e.target.value }
+                  })}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="transform">Transform</option>
+                  <option value="filter">Filter</option>
+                  <option value="aggregate">Aggregate</option>
+                  <option value="validate">Validate</option>
+                </select>
+              </div>
+            )}
+
+            {/* Delete Node Button */}
+            <button
+              onClick={() => deleteNode(selectedNode.id)}
+              className="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 mt-4"
+            >
+              Delete Node
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
