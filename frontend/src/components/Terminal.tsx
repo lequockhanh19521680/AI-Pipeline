@@ -10,7 +10,8 @@ const Terminal: React.FC<TerminalProps> = ({
   geminiService, 
   files, 
   currentFile, 
-  onCodeUpdate 
+  onCodeUpdate,
+  projectConfig
 }) => {
   const [currentCommand, setCurrentCommand] = useState<string>('');
   const [activeTab, setActiveTab] = useState<TabType>('output');
@@ -135,6 +136,7 @@ const Terminal: React.FC<TerminalProps> = ({
             files={files}
             currentFile={currentFile}
             onCodeUpdate={onCodeUpdate}
+            projectConfig={projectConfig}
           />
         )}
       </div>

@@ -74,6 +74,7 @@ export interface AIAssistantProps {
   files: FileMap;
   currentFile: string;
   onCodeUpdate: (filename: string, content: string) => void;
+  projectConfig: PipelineConfig | null;
   className?: string;
 }
 
@@ -154,6 +155,7 @@ export interface TerminalProps {
   files: FileMap;
   currentFile: string;
   onCodeUpdate: (filename: string, content: string) => void;
+  projectConfig: PipelineConfig | null;
   className?: string;
 }
 

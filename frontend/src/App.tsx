@@ -1629,6 +1629,7 @@ module.exports = app;`;
                       files={appState.files}
                       currentFile={appState.currentFile}
                       onCodeUpdate={updateFileContent}
+                      projectConfig={projectConfig}
                     />
                   </div>
                 </div>

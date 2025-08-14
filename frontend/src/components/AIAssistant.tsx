@@ -7,7 +7,8 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
   geminiService, 
   files, 
   currentFile, 
-  onCodeUpdate 
+  onCodeUpdate,
+  projectConfig
 }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [assistantMode, setAssistantMode] = useState<AssistantMode>('analyze');
@@ -37,23 +38,25 @@ const AIAssistant: React.FC<AIAssistantProps> = ({
       
       switch (assistantMode) {
         case 'analyze':
+          if (!projectConfig) {
+            setError('Project configuration is required for code analysis');
+            setIsLoading(false);
+            return;
+          }
           response = await geminiService.analyzeData(
-            `Current file: ${currentFile}`,
-            { 
-              data: { source: '', target_column: '' },
-              model: { type: '', n_estimators: 0, random_state: 0 },
-              preprocessing: { test_size: 0, normalize: false }
-            }
+            currentCode || `Current file: ${currentFile}`,
+            projectConfig
           );
           break;
         case 'optimize':
+          if (!projectConfig) {
+            setError('Project configuration is required for optimization');
+            setIsLoading(false);
+            return;
+          }
           response = await geminiService.optimizeConfig(
-            { 
-              data: { source: '', target_column: '' },
-              model: { type: '', n_estimators: 0, random_state: 0 },
-              preprocessing: { test_size: 0, normalize: false }
-            },
-            'Request optimization suggestions'
+            projectConfig,
+            'Request optimization suggestions for the current project configuration'
           );
           break;
         case 'debug':
