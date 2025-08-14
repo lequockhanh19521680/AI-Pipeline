@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { GitHubConfig, PRDetails, RepoStructure, GeneratedCode, FileNode } from '../../shared/interfaces/api.js';
+import { GitHubConfig, PRDetails, RepoStructure, GeneratedCode, FileNode } from '../../../shared/interfaces/api.js';
 
 export class GitHubService {
   private octokit: Octokit | null = null;
@@ -30,11 +30,11 @@ export class GitHubService {
       const structure = await this.buildFileTree(owner, repo, contents);
 
       return {
-        name: repoData.name,
-        fullName: repoData.full_name,
+        files: structure,
+        languages: { [repoData.language || 'Unknown']: 100 },
+        topics: repoData.topics || [],
         description: repoData.description || '',
-        language: repoData.language || 'Unknown',
-        structure
+        framework: repoData.language || undefined
       };
     } catch (error) {
       throw new Error(`Failed to analyze repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -108,24 +108,26 @@ export class GitHubService {
         sha: ref.object.sha
       });
 
-      // Create or update files
-      for (const [filePath, content] of Object.entries(generatedCode.files)) {
-        try {
-          // Check if file exists
-          const { data: existingFile } = await this.octokit.repos.getContent({
-            owner: config.owner,
-            repo: config.repo,
-            path: filePath,
-            ref: branchName
-          });
+      // Create or update the single file
+      const filePath = generatedCode.filename;
+      const content = generatedCode.content;
+      
+      try {
+        // Check if file exists
+        const { data: existingFile } = await this.octokit.repos.getContent({
+          owner: config.owner,
+          repo: config.repo,
+          path: filePath,
+          ref: branchName
+        });
 
-          // Update existing file
-          await this.octokit.repos.createOrUpdateFileContents({
+        // Update existing file
+        await this.octokit.repos.createOrUpdateFileContents({
             owner: config.owner,
             repo: config.repo,
             path: filePath,
             message: `Update ${filePath}`,
-            content: Buffer.from(content).toString('base64'),
+            content: Buffer.from(content as string).toString('base64'),
             branch: branchName,
             sha: Array.isArray(existingFile) ? existingFile[0].sha : existingFile.sha
           });
@@ -136,10 +138,20 @@ export class GitHubService {
             repo: config.repo,
             path: filePath,
             message: `Add ${filePath}`,
-            content: Buffer.from(content).toString('base64'),
+            content: Buffer.from(content as string).toString('base64'),
             branch: branchName
           });
         }
+      } catch (fileError) {
+        // File doesn't exist, create it
+        await this.octokit.repos.createOrUpdateFileContents({
+          owner: config.owner,
+          repo: config.repo,
+          path: filePath,
+          message: `Add ${filePath}`,
+          content: Buffer.from(content as string).toString('base64'),
+          branch: branchName
+        });
       }
 
       return branchName;
@@ -160,7 +172,7 @@ export class GitHubService {
     }
 
     try {
-      const filesList = Object.keys(generatedCode.files).map(path => `- \`${path}\``).join('\n');
+      const filesList = `- \`${generatedCode.filename}\``;
       
       const enhancedDescription = `
 # 🚀 AI-Generated Application
@@ -171,9 +183,8 @@ ${description}
 ${filesList}
 
 ## 🏗️ Project Structure
-- **Type**: ${generatedCode.metadata.projectType}
-- **Tech Stack**: ${generatedCode.metadata.techStack.join(', ')}
-- **Description**: ${generatedCode.metadata.description}
+- **File**: ${generatedCode.filename}
+- **Path**: ${generatedCode.path}
 
 ## 🧪 Testing Instructions
 1. Clone this branch

@@ -152,6 +152,7 @@ export interface GitHubIntegrationProps {
 export interface PreviewPanelProps {
   files: FileMap;
   isVisible: boolean;
+  projectType?: string;
   className?: string;
 }
 
@@ -239,6 +240,7 @@ export interface ProjectMetadata {
   pipelineConfig?: PipelineConfig;
   status?: string;
   lastModified?: string;
+  createdAt?: string;
   mlPipelineId?: string;
 }
 

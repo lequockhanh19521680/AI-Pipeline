@@ -158,7 +158,6 @@ export const MinimalistCodeEditor: React.FC<MinimalistCodeEditorProps> = ({
                       wordWrap: 'on',
                       lineNumbers: 'on',
                       folding: true,
-                      bracketMatching: 'always',
                       autoIndent: 'full',
                       formatOnPaste: true,
                       formatOnType: true,

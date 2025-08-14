@@ -57,16 +57,17 @@ const PipelineStageNode: React.FC<PipelineStageNodeProps> = ({ data }) => {
   };
 
   const getProgressBar = () => {
-    if (stage.status === 'running' && stage.progress !== undefined) {
-      return (
-        <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
-          <div 
-            className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-            style={{ width: `${stage.progress}%` }}
-          ></div>
-        </div>
-      );
-    }
+    // Progress feature disabled - progress property not available in MLPipelineStageType
+    // if (stage.status === 'running' && stage.progress !== undefined) {
+    //   return (
+    //     <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+    //       <div 
+    //         className="bg-blue-500 h-1 rounded-full transition-all duration-300"
+    //         style={{ width: `${stage.progress}%` }}
+    //       ></div>
+    //     </div>
+    //   );
+    // }
     return null;
   };
 

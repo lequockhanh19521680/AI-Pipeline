@@ -3,8 +3,8 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
-import { MLPipelineConfig, PipelineExecution, MLPipelineStage } from '../../shared/types/pipeline.js';
-import { PipelineEvent } from '../../shared/interfaces/api.js';
+import { MLPipelineConfig, PipelineExecution, MLPipelineStage } from '../../../shared/types/pipeline.js';
+import { PipelineEvent } from '../../../shared/interfaces/api.js';
 
 export class PipelineService {
   private executions: Map<string, PipelineExecution> = new Map();
@@ -105,7 +105,7 @@ export class PipelineService {
         id: pipelineId,
         name: config.name,
         description: config.description,
-        stages: config.stages.map(stage => ({
+        stages: config.stages.map((stage: MLPipelineStage) => ({
           id: stage.id,
           name: stage.name,
           script: `${stage.id}.py`,
@@ -139,7 +139,7 @@ export class PipelineService {
       execution.currentStage = stage.id;
       
       this.emitEvent(pipelineId, {
-        type: 'stage-start',
+        type: 'stage_started',
         pipelineId,
         stageId: stage.id,
         data: { stage: stage.name },
@@ -154,7 +154,7 @@ export class PipelineService {
         execution.progress = ((i + 1) / config.stages.length) * 100;
 
         this.emitEvent(pipelineId, {
-          type: 'stage-complete',
+          type: 'stage_completed',
           pipelineId,
           stageId: stage.id,
           data: { stage: stage.name, outputs: stage.outputs },
@@ -166,7 +166,7 @@ export class PipelineService {
         execution.status = 'error';
         
         this.emitEvent(pipelineId, {
-          type: 'stage-error',
+          type: 'stage_failed',
           pipelineId,
           stageId: stage.id,
           data: { error: error instanceof Error ? error.message : 'Unknown error' },
@@ -181,7 +181,7 @@ export class PipelineService {
     execution.endTime = new Date();
     
     this.emitEvent(pipelineId, {
-      type: 'pipeline-complete',
+      type: 'pipeline_completed',
       pipelineId,
       data: { results: execution.results },
       timestamp: new Date()

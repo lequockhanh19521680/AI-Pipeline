@@ -27,7 +27,7 @@ const StageDetailModal: React.FC<StageDetailProps> = ({ stage, isOpen, onClose }
     };
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses[stage.status]}`}>
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses[stage.status as keyof typeof statusClasses] || statusClasses.idle}`}>
         {stage.status.charAt(0).toUpperCase() + stage.status.slice(1)}
       </span>
     );
@@ -140,7 +140,7 @@ const StageDetailModal: React.FC<StageDetailProps> = ({ stage, isOpen, onClose }
                   <p className="text-gray-500 dark:text-gray-400 text-center py-8">No logs available</p>
                 ) : (
                   <div className="bg-black rounded-lg p-4 font-mono text-sm max-h-80 overflow-y-auto">
-                    {stage.logs.map((log, index) => (
+                    {stage.logs.map((log: string, index: number) => (
                       <div key={index} className="text-green-400 whitespace-pre-wrap break-words">
                         {log}
                       </div>
@@ -170,7 +170,7 @@ const StageDetailModal: React.FC<StageDetailProps> = ({ stage, isOpen, onClose }
                   <p className="text-gray-500 dark:text-gray-400 text-center py-8">No artifacts available</p>
                 ) : (
                   <div className="space-y-2">
-                    {stage.artifacts.map((artifact, index) => (
+                    {stage.artifacts.map((artifact: string, index: number) => (
                       <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded-lg flex items-center space-x-3">
                         <div className="flex-shrink-0">
                           <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
