@@ -93,8 +93,71 @@ io.on('connection', (socket) => {
     console.log(`Client ${socket.id} joined pipeline ${pipelineId}`);
   });
 
+  // Real-time collaboration events
+  socket.on('join-room', (roomId: string) => {
+    socket.join(roomId);
+    console.log(`Client ${socket.id} joined room ${roomId}`);
+    
+    // Notify others in the room
+    socket.to(roomId).emit('user-joined', {
+      userId: socket.id,
+      roomId,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('leave-room', (roomId: string) => {
+    socket.leave(roomId);
+    console.log(`Client ${socket.id} left room ${roomId}`);
+    
+    // Notify others in the room
+    socket.to(roomId).emit('user-left', {
+      userId: socket.id,
+      roomId,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('code-change', (data: any) => {
+    console.log(`Code change from ${socket.id} in room ${data.room}`);
+    
+    // Broadcast to all other clients in the room
+    socket.to(data.room).emit('code-change', {
+      ...data,
+      userId: socket.id,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('cursor-move', (data: any) => {
+    // Broadcast cursor movement to all other clients in the room
+    socket.to(data.room).emit('cursor-move', {
+      ...data,
+      userId: socket.id,
+      timestamp: new Date()
+    });
+  });
+
+  // Pipeline commands
+  socket.on('pipeline-command', (data: any) => {
+    console.log(`Pipeline command from ${socket.id}:`, data);
+    
+    // Broadcast pipeline events to all clients watching this pipeline
+    io.to(`pipeline-${data.pipelineId}`).emit('pipeline-event', {
+      type: 'command',
+      pipelineId: data.pipelineId,
+      command: data.command,
+      data: data.data,
+      userId: socket.id,
+      timestamp: new Date()
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    
+    // Could broadcast disconnect to all rooms the user was in
+    // For now, socket.io handles room cleanup automatically
   });
 });
 
