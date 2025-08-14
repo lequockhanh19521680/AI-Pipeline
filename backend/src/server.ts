@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import passport from './middleware/passport.js';
 import { PipelineService } from './services/PipelineService';
+import { DynamicPipelineService } from './services/DynamicPipelineService';
 import { GitHubService } from './services/GitHubService';
 import pipelineRoutes from './routes/pipeline';
 import githubRoutes from './routes/github';
@@ -59,10 +60,12 @@ app.use(passport.session());
 
 // Services
 const pipelineService = new PipelineService(io);
+const dynamicPipelineService = new DynamicPipelineService(io);
 const githubService = new GitHubService();
 
 // Make services available to routes
 app.locals.pipelineService = pipelineService;
+app.locals.dynamicPipelineService = dynamicPipelineService;
 app.locals.githubService = githubService;
 
 // Routes

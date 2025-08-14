@@ -152,7 +152,7 @@ class WebSocketService {
       const logEvent: LogEvent = {
         level: event.data.level,
         message: event.data.message,
-        timestamp: new Date(event.timestamp),
+        timestamp: new Date(event.timestamp || Date.now()),
         source: event.stageId || 'system',
         stage: event.stageId,
       };
