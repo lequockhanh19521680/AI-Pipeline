@@ -66,7 +66,7 @@ const ProjectSchema: Schema = new Schema({
   timestamps: true,
   toJSON: {
     transform: function(doc, ret) {
-      ret.files = Object.fromEntries(ret.files || new Map());
+      ret.files = ret.files || {};
       return ret;
     }
   }

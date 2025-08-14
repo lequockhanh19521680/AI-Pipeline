@@ -98,19 +98,19 @@ const PipelineExecutionSchema: Schema = new Schema({
 });
 
 // Pre-save middleware to calculate duration
-PipelineExecutionSchema.pre('save', function(next) {
+PipelineExecutionSchema.pre('save', function(this: IPipelineExecution, next) {
   if (this.endTime && this.startTime) {
-    this.duration = this.endTime.getTime() - this.startTime.getTime();
+    this.duration = (this.endTime as Date).getTime() - (this.startTime as Date).getTime();
   }
   
   // Calculate completed stages
-  this.completedStages = this.stages.filter(stage => 
+  this.completedStages = (this.stages as any[]).filter((stage: any) => 
     stage.status === 'completed'
   ).length;
   
   // Calculate metrics
-  if (this.totalStages > 0) {
-    this.metrics.successRate = (this.completedStages / this.totalStages) * 100;
+  if ((this.totalStages as number) > 0) {
+    (this.metrics as any).successRate = ((this.completedStages as number) / (this.totalStages as number)) * 100;
   }
   
   next();
