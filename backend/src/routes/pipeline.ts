@@ -1,10 +1,52 @@
 import express from 'express';
+import { body, validationResult } from 'express-validator';
 import { PipelineService } from '../services/PipelineService';
 
 const router = express.Router();
 
+// Validation middleware for handling validation errors
+const handleValidationErrors = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      details: errors.array()
+    });
+  }
+  next();
+};
+
+// Validation rules for pipeline creation
+const createPipelineValidation = [
+  body('name')
+    .notEmpty()
+    .withMessage('Name is required')
+    .isString()
+    .withMessage('Name must be a string')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Name must be between 1 and 100 characters'),
+  
+  body('description')
+    .notEmpty()
+    .withMessage('Description is required')
+    .isString()
+    .withMessage('Description must be a string')
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Description must be between 1 and 500 characters'),
+  
+  body('dataPath')
+    .optional()
+    .isString()
+    .withMessage('DataPath must be a string')
+    .matches(/^[a-zA-Z0-9\/\-_\.]+$/)
+    .withMessage('DataPath must be a valid path-like string')
+];
+
 // Create a new pipeline
-router.post('/create', async (req, res) => {
+router.post('/create', createPipelineValidation, handleValidationErrors, async (req: express.Request, res: express.Response) => {
   try {
     const pipelineService: PipelineService = req.app.locals.pipelineService;
     const pipeline = await pipelineService.createPipeline(req.body);

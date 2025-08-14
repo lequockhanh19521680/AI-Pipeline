@@ -9,6 +9,7 @@ import yaml
 import pandas as pd
 import numpy as np
 import json
+import traceback
 from pathlib import Path
 
 def load_config(config_file, stage_id):
@@ -84,7 +85,19 @@ def ingest_data(config):
         return True
         
     except Exception as e:
+        # Log full traceback for debugging
+        error_traceback = traceback.format_exc()
         print(f"❌ Data ingestion failed: {str(e)}")
+        print(f"Full traceback:\n{error_traceback}")
+        
+        # Print structured JSON error to stderr for backend detection
+        error_info = {
+            "status": "error",
+            "stage": "data_ingestion", 
+            "message": str(e),
+            "traceback": error_traceback
+        }
+        print(json.dumps(error_info), file=sys.stderr)
         return False
 
 def main():
@@ -100,7 +113,19 @@ def main():
         success = ingest_data(config)
         sys.exit(0 if success else 1)
     except Exception as e:
+        # Log full traceback for debugging
+        error_traceback = traceback.format_exc()
         print(f"❌ Error: {str(e)}")
+        print(f"Full traceback:\n{error_traceback}")
+        
+        # Print structured JSON error to stderr for backend detection
+        error_info = {
+            "status": "error",
+            "stage": "data_ingestion",
+            "message": str(e),
+            "traceback": error_traceback
+        }
+        print(json.dumps(error_info), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

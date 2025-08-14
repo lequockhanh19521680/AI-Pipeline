@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import FileTree from './components/FileTree';
 import Editor from './components/Editor';
 import Terminal from './components/Terminal';
@@ -32,12 +32,117 @@ import {
   MLPipelineStageType
 } from './types';
 
+// Consolidated state management types
+interface AppState {
+  // Pipeline state
+  pipelineStatus: PipelineStatus;
+  currentStage: string | null;
+  stageResults: StageResults;
+  isLoading: boolean;
+  
+  // File management
+  files: FileMap;
+  currentFile: string;
+  
+  // UI state
+  showProjectInput: boolean;
+  showPreview: boolean;
+  showBackendStatus: boolean;
+  currentView: 'code' | 'pipeline' | 'projects' | 'github' | 'review';
+}
+
+// Action types
+type AppAction = 
+  | { type: 'START_PIPELINE'; payload: { stage: string; status: PipelineStatus } }
+  | { type: 'STAGE_COMPLETE'; payload: { stage: string; results: any } }
+  | { type: 'UPDATE_FILE_CONTENT'; payload: { filename: string; content: string } }
+  | { type: 'SELECT_FILE'; payload: { filename: string } }
+  | { type: 'SET_VIEW'; payload: { view: 'code' | 'pipeline' | 'projects' | 'github' | 'review' } }
+  | { type: 'TOGGLE_PANEL'; payload: { panel: 'projectInput' | 'preview' | 'backendStatus' } }
+  | { type: 'SET_LOADING'; payload: { loading: boolean } };
+
+// Initial state
+const initialState: AppState = {
+  pipelineStatus: PIPELINE_STATUS.IDLE,
+  currentStage: null,
+  stageResults: {},
+  isLoading: false,
+  files: initialFiles,
+  currentFile: 'project-requirements.md',
+  showProjectInput: false,
+  showPreview: false,
+  showBackendStatus: false,
+  currentView: 'code'
+};
+
+// Reducer function
+const appReducer = (state: AppState, action: AppAction): AppState => {
+  switch (action.type) {
+    case 'START_PIPELINE':
+      return {
+        ...state,
+        pipelineStatus: action.payload.status,
+        currentStage: action.payload.stage,
+        isLoading: true
+      };
+    
+    case 'STAGE_COMPLETE':
+      return {
+        ...state,
+        stageResults: {
+          ...state.stageResults,
+          [action.payload.stage]: action.payload.results
+        },
+        isLoading: false
+      };
+    
+    case 'UPDATE_FILE_CONTENT':
+      return {
+        ...state,
+        files: {
+          ...state.files,
+          [action.payload.filename]: action.payload.content
+        }
+      };
+    
+    case 'SELECT_FILE':
+      return {
+        ...state,
+        currentFile: action.payload.filename
+      };
+    
+    case 'SET_VIEW':
+      return {
+        ...state,
+        currentView: action.payload.view
+      };
+    
+    case 'TOGGLE_PANEL':
+      const { panel } = action.payload;
+      return {
+        ...state,
+        showProjectInput: panel === 'projectInput' ? !state.showProjectInput : state.showProjectInput,
+        showPreview: panel === 'preview' ? !state.showPreview : state.showPreview,
+        showBackendStatus: panel === 'backendStatus' ? !state.showBackendStatus : state.showBackendStatus
+      };
+    
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload.loading
+      };
+    
+    default:
+      return state;
+  }
+};
+
 const App: React.FC = () => {
-  // State management
-  const [files, setFiles] = useState<FileMap>(initialFiles);
-  const [currentFile, setCurrentFile] = useState<string>('project-requirements.md');
+  // Consolidated state management with useReducer
+  const [appState, dispatch] = useReducer(appReducer, initialState);
+  
+  // Remaining individual state hooks for complex or unrelated state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
-  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus>(PIPELINE_STATUS.IDLE);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([
     '🤖 AI Pipeline IDE v3.0.0 - Professional Edition',
     '✨ Enhanced with real ML pipelines and GitHub integration',
@@ -48,16 +153,10 @@ const App: React.FC = () => {
     localStorage.getItem('gemini_api_key') || ''
   );
   const [geminiService, setGeminiService] = useState<GeminiService | null>(null);
-  const [currentStage, setCurrentStage] = useState<string | null>(null);
-  const [stageResults, setStageResults] = useState<StageResults>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState<number>(0);
   
   // Enhanced state for new features
   const [projectConfig, setProjectConfig] = useState<PipelineConfig | null>(null);
-  const [showProjectInput, setShowProjectInput] = useState<boolean>(false);
-  const [showPreview, setShowPreview] = useState<boolean>(false);
-  const [showBackendStatus, setShowBackendStatus] = useState<boolean>(false);
   const [qaFeedback, setQaFeedback] = useState<string>('');
   
   // New ML Pipeline state
@@ -254,7 +353,7 @@ const App: React.FC = () => {
 
   // File operations
   const openFile = (filename: string): void => {
-    setCurrentFile(filename);
+    dispatch({ type: 'SELECT_FILE', payload: { filename } });
     if (!openTabs.includes(filename)) {
       setOpenTabs([...openTabs, filename]);
     }
@@ -263,16 +362,13 @@ const App: React.FC = () => {
   const closeTab = (filename: string): void => {
     const newTabs = openTabs.filter(tab => tab !== filename);
     setOpenTabs(newTabs);
-    if (currentFile === filename && newTabs.length > 0) {
-      setCurrentFile(newTabs[newTabs.length - 1]);
+    if (appState.currentFile === filename && newTabs.length > 0) {
+      dispatch({ type: 'SELECT_FILE', payload: { filename: newTabs[newTabs.length - 1] } });
     }
   };
 
   const updateFileContent = (filename: string, content: string): void => {
-    setFiles(prev => ({
-      ...prev,
-      [filename]: content
-    }));
+    dispatch({ type: 'UPDATE_FILE_CONTENT', payload: { filename, content } });
   };
 
   const addToTerminal = (message: string): void => {
@@ -309,14 +405,11 @@ const App: React.FC = () => {
     if (!projectConfig) {
       addToTerminal('❌ Error: No project configured');
       addToTerminal('Please create a new project first');
-      setShowProjectInput(true);
+      dispatch({ type: 'TOGGLE_PANEL', payload: { panel: 'projectInput' } });
       return;
     }
 
-    setIsLoading(true);
-    setPipelineStatus(PIPELINE_STATUS.RUNNING);
-    setCurrentStage(null);
-    setStageResults({});
+    dispatch({ type: 'START_PIPELINE', payload: { stage: 'initialization', status: PIPELINE_STATUS.RUNNING } });
     setQaFeedback('');
     setRetryCount(0);
     addToTerminal('🚀 Starting AI Software Development Pipeline...');
@@ -324,7 +417,7 @@ const App: React.FC = () => {
     
     try {
       await runSoftwarePipelineWithGemini();
-      setPipelineStatus(PIPELINE_STATUS.COMPLETED);
+      dispatch({ type: 'STAGE_COMPLETE', payload: { stage: 'pipeline', results: 'completed' } });
       addToTerminal('🎉 Software development pipeline completed successfully!');
       addToTerminal('💡 Your project is ready for download and development!');
     } catch (error) {
@@ -351,8 +444,8 @@ const App: React.FC = () => {
   const runSoftwarePipelineWithGemini = async (): Promise<void> => {
     const stages = Object.values(PIPELINE_STAGES);
     const context: PipelineContext = {
-      files,
-      currentFile,
+      files: appState.files,
+      currentFile: appState.currentFile,
       config: projectConfig!,
       qaFeedback
     };
@@ -477,13 +570,13 @@ const App: React.FC = () => {
     addToTerminal('🔧 Code refinements applied based on QA feedback');
   };
 
-  const downloadProject = (): void => {
+  const downloadProject = async (): Promise<void> => {
     if (!projectConfig) {
       addToTerminal('❌ No project to download');
       return;
     }
     
-    const success = downloadProjectAsZip(files, projectConfig.projectName);
+    const success = await downloadProjectAsZip(files, projectConfig.projectName);
     if (success) {
       addToTerminal(`📦 Project "${projectConfig.projectName}" downloaded successfully!`);
       addToTerminal('🚀 Extract and run "npm install" to get started');
@@ -1382,9 +1475,9 @@ module.exports = app;`;
                   {/* Code Editor */}
                   <div className="flex-1 flex flex-col">
                     <Editor
-                      content={files[currentFile] || ''}
-                      filename={currentFile}
-                      onChange={(content) => updateFileContent(currentFile, content)}
+                      content={appState.files[appState.currentFile] || ''}
+                      filename={appState.currentFile}
+                      onChange={(content) => updateFileContent(appState.currentFile, content)}
                     />
                   </div>
 
