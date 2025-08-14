@@ -51,8 +51,8 @@ export const PIPELINE_STATUS = PipelineStatus;
 
 // Gemini API configuration
 export const GEMINI_CONFIG = {
-  API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-  DEFAULT_MODEL: 'gemini-pro'
+  API_URL: "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-latest:generateContent",
+  DEFAULT_MODEL: "gemini-1.5-pro-latest",
 } as const;
 
 // File icon mapping with type safety
