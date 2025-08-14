@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import passport from '../middleware/passport.js';
 import { User } from '../models/User.js';
 import { generateToken, AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 
@@ -137,11 +138,12 @@ router.post('/login',
 );
 
 // GET /api/auth/me - Get current user profile
-router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
+    const user = (req as AuthenticatedRequest).user;
     res.json({
       success: true,
-      data: req.user?.toJSON()
+      data: user?.toJSON()
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -162,9 +164,9 @@ router.put('/profile',
     body('preferences.notifications').optional().isBoolean().withMessage('Notifications must be a boolean')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const user = req.user!;
+      const user = (req as AuthenticatedRequest).user!;
       const { firstName, lastName, preferences } = req.body;
 
       if (firstName !== undefined) user.profile.firstName = firstName;
@@ -198,9 +200,9 @@ router.post('/change-password',
     body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
   ],
   validateRequest,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const user = req.user!;
+      const user = (req as AuthenticatedRequest).user!;
       const { currentPassword, newPassword } = req.body;
 
       // Verify current password
@@ -226,6 +228,48 @@ router.post('/change-password',
         success: false,
         error: 'Failed to change password'
       });
+    }
+  }
+);
+
+// OAuth Routes
+
+// GitHub OAuth
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+router.get('/github/callback', 
+  passport.authenticate('github', { session: false, failureRedirect: '/login?error=github_auth_failed' }),
+  (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const token = generateToken(user._id.toString());
+      
+      // Redirect to frontend with token
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}?token=${token}&login=success`);
+    } catch (error) {
+      console.error('GitHub OAuth callback error:', error);
+      res.redirect('/login?error=github_callback_failed');
+    }
+  }
+);
+
+// Google OAuth
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+  (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const token = generateToken(user._id.toString());
+      
+      // Redirect to frontend with token
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}?token=${token}&login=success`);
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect('/login?error=google_callback_failed');
     }
   }
 );

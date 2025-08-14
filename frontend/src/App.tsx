@@ -97,6 +97,33 @@ const App: React.FC = () => {
 
   // Initialize theme on mount and load data
   useEffect(() => {
+    // Handle OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const loginStatus = urlParams.get('login');
+    
+    if (token && loginStatus === 'success') {
+      // OAuth login successful, get user data
+      const { login } = useAuthStore.getState();
+      
+      // Verify token and get user data by creating a temporary request
+      fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).then(response => response.json())
+      .then((data: any) => {
+        if (data.success) {
+          login(token, data.data);
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }).catch((error) => {
+        console.error('Failed to fetch user data after OAuth:', error);
+      });
+    }
+
     // Load GitHub config
     const savedGitHubConfig = localStorage.getItem('github-config');
     if (savedGitHubConfig) {

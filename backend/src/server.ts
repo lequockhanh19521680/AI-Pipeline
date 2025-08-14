@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import session from 'express-session';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import passport from './middleware/passport.js';
 import { PipelineService } from './services/PipelineService';
 import { GitHubService } from './services/GitHubService';
 import pipelineRoutes from './routes/pipeline';
@@ -40,6 +42,21 @@ mongoose.connect(MONGODB_URI)
 app.use(cors());
 app.use(express.json());
 
+// Session configuration for OAuth
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'ai-pipeline-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Services
 const pipelineService = new PipelineService(io);
 const githubService = new GitHubService();
@@ -49,6 +66,7 @@ app.locals.pipelineService = pipelineService;
 app.locals.githubService = githubService;
 
 // Routes
+app.use('/auth', authRoutes); // OAuth routes without /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/pipeline', pipelineRoutes);
 app.use('/api/github', githubRoutes);
