@@ -1068,6 +1068,16 @@ module.exports = app;`;
     addToTerminal(`🗑️ Project deleted`);
   };
 
+  const handleProjectLoad = (project: ProjectMetadata): void => {
+    setCurrentProject(project);
+    if (project.pipelineConfig) {
+      setProjectConfig(project.pipelineConfig);
+    }
+    // Switch to code view to start the pipeline
+    setCurrentView('code');
+    addToTerminal(`🚀 Project loaded: ${project.name} - Ready to start pipeline!`);
+  };
+
   const getDefaultTechStack = (type: 'frontend' | 'backend' | 'fullstack') => {
     switch (type) {
       case 'frontend':
@@ -1253,17 +1263,6 @@ module.exports = app;`;
 
             {currentView === 'code' && (
               <>
-                <button
-                  onClick={startNewProject}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  disabled={pipelineStatus === PIPELINE_STATUS.RUNNING}
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Project
-                </button>
-
                 {projectConfig && (
                   <>
                     <button
@@ -1274,7 +1273,7 @@ module.exports = app;`;
                       <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" />
                       </svg>
-                      AI Pipeline
+                      Start Pipeline
                     </button>
 
                     {githubConfig && (
@@ -1289,6 +1288,12 @@ module.exports = app;`;
                       </button>
                     )}
                   </>
+                )}
+                
+                {!projectConfig && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Create a project in the Projects tab to get started
+                  </div>
                 )}
               </>
             )}
@@ -1434,6 +1439,7 @@ module.exports = app;`;
                 currentProject={currentProject}
                 onProjectSelect={handleProjectSelect}
                 onProjectCreate={handleProjectCreate}
+                onProjectLoad={handleProjectLoad}
                 onProjectDelete={handleProjectDelete}
               />
             </div>
