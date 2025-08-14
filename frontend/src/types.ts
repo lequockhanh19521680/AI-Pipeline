@@ -1,78 +1,9 @@
-// Re-export shared types for convenience - temporarily commented out due to path issues
-// export * from '@shared/types/pipeline';
-// export * from '@shared/interfaces/api';
-// export * from '@shared/interfaces/common';
+// Re-export shared types for convenience
+export * from '@shared/types/pipeline';
+export * from '@shared/interfaces/api';
+export * from '@shared/interfaces/common';
 
-// Define necessary types directly to avoid import issues
-export interface GitHubConfig {
-  token: string;
-  owner: string;
-  repo: string;
-  branch?: string;
-}
-
-export interface MLPipelineConfig {
-  id: string;
-  name: string;
-  description: string;
-  stages: MLPipelineStageType[];
-  dataPath?: string;
-  modelConfig?: any;
-  outputPath?: string;
-}
-
-export interface PipelineExecution {
-  id: string;
-  config: MLPipelineConfig;
-  status: 'idle' | 'running' | 'completed' | 'error';
-  currentStage?: string;
-  progress: number;
-  startTime: Date;
-  endTime?: Date;
-  results: any;
-}
-
-export interface RepoStructure {
-  files: FileNode[];
-  languages: Record<string, number>;
-  topics: string[];
-  description: string;
-  framework?: string;
-}
-
-export interface FileNode {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  size?: number;
-  children?: FileNode[];
-}
-
-export interface GeneratedCode {
-  filename: string;
-  content: string;
-  path: string;
-}
-
-export interface PRDetails {
-  number: number;
-  url: string;
-  title: string;
-  description: string;
-  branch: string;
-}
-
-export interface BackendAPI {
-  createPipeline(config: Partial<MLPipelineConfig>): Promise<MLPipelineConfig>;
-  executePipeline(id: string, config: MLPipelineConfig): Promise<string>;
-  getPipelineStatus(id: string): Promise<PipelineExecution | null>;
-  stopPipeline(id: string): Promise<void>;
-  validateToken(token: string): Promise<{ valid: boolean; user?: string }>;
-  analyzeRepo(token: string, owner: string, repo: string): Promise<RepoStructure>;
-  pushCode(token: string, config: GitHubConfig, generatedCode: GeneratedCode, commitMessage: string): Promise<string>;
-  createPR(token: string, config: GitHubConfig, branchName: string, title: string, description: string, generatedCode: GeneratedCode): Promise<PRDetails>;
-}
-
+// BackendError class for compatibility (was interface in shared)
 export class BackendError extends Error {
   constructor(
     message: string,
@@ -84,16 +15,43 @@ export class BackendError extends Error {
   }
 }
 
-export interface LogEvent {
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  timestamp: Date;
-  source: string;
-  stage?: string;
+// Legacy types still used in components that need to be maintained
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+  type: 'frontend' | 'backend' | 'fullstack';
+  projectType: 'frontend' | 'backend' | 'fullstack';
+  techStack: string[];
+  description: string;
+  pipelineConfig?: PipelineConfig;
+  status?: string;
+  lastModified?: string;
+  createdAt?: string;
+  mlPipelineId?: string;
 }
 
-// Type alias for compatibility
-export type MLPipelineStage = MLPipelineStageType;
+export interface MLPipelineStageType {
+  id: string;
+  name: string;
+  status: 'idle' | 'running' | 'completed' | 'error';
+  startTime?: Date;
+  endTime?: Date;
+  logs: string[];
+  outputs: any;
+  artifacts: string[];
+  progress?: number;
+}
+
+export class PipelineError extends Error {
+  constructor(
+    message: string,
+    public stage: string,
+    public context?: any
+  ) {
+    super(message);
+    this.name = 'PipelineError';
+  }
+}
 
 // Frontend-specific types that don't exist in shared
 export interface EditorState {
@@ -145,7 +103,7 @@ export interface FileTreeProps {
 
 export interface GitHubIntegrationProps {
   isVisible: boolean;
-  onConfigSave: (config: GitHubConfig) => void;
+  onConfigSave: (config: import('@shared/interfaces/api').GitHubConfig) => void;
   className?: string;
 }
 
@@ -196,6 +154,39 @@ export interface TerminalProps {
   files: FileMap;
   currentFile: string;
   onCodeUpdate: (filename: string, content: string) => void;
+  className?: string;
+}
+
+// Type aliases for compatibility with duplicated types that might still exist
+export type MLPipelineStage = MLPipelineStageType;
+
+export interface ThemeToggleProps {
+  isDarkMode: boolean;
+  onToggle: (value: boolean) => void;
+  className?: string;
+}
+
+export interface PipelineProps {
+  status: PipelineStatus;
+  apiKey: string;
+  onApiKeyChange: (key: string) => void;
+  currentStage: string | null;
+  stageResults: StageResults;
+  stages: any[];
+  className?: string;
+}
+
+export interface PipelineFlowProps {
+  stages: MLPipelineStageType[];
+  currentStage: string | undefined;
+  onStageClick: (stageId: string) => void;
+  onStageHover: (stageId: string | null) => void;
+  nodes: any[];
+  edges: any[];
+  onNodesChange: (changes: any[]) => void;
+  onEdgesChange: (changes: any[]) => void;
+  onConnect: (params: any) => void;
+  onNodeClick: (event: any, node: any) => void;
   className?: string;
 }
 
@@ -341,17 +332,6 @@ export interface MLPipelineStageType {
   logs: string[];
   outputs: any;
   artifacts: string[];
-}
-
-export class PipelineError extends Error {
-  constructor(
-    message: string,
-    public stage: string,
-    public originalError?: Error
-  ) {
-    super(message);
-    this.name = 'PipelineError';
-  }
 }
 
 export class GeminiError extends Error {

@@ -13,11 +13,15 @@ import StageDetailModal from './components/StageDetailModal';
 import ProjectManagement from './components/ProjectManagement';
 import GitHubIntegration from './components/GitHubIntegration';
 import AICodeReviewAssistant from './components/AICodeReviewAssistant';
+import Login from './components/Login';
+import Register from './components/Register';
+import Profile from './components/Profile';
 import { initialFiles, PIPELINE_STATUS, PIPELINE_STAGES, getDefaultProjectConfig } from './data';
 import GeminiService from './services/GeminiService';
 import backendAPI from './services/BackendAPI';
 import webSocketService from './services/WebSocketService';
 import { downloadProjectAsZip } from './utils/download';
+import { useAuthStore } from './store/authStore';
 import { 
   FileMap, 
   PipelineStatus, 
@@ -221,6 +225,11 @@ const App: React.FC = () => {
   // GitHub Integration state
   const [showGitHubIntegration, setShowGitHubIntegration] = useState<boolean>(false);
   const [githubConfig, setGitHubConfig] = useState<GitHubConfig | null>(null);
+  
+  // Authentication state
+  const { isAuthenticated, user } = useAuthStore();
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'profile'>('login');
   
   // UI State
   const [currentView, setCurrentView] = useState<'code' | 'pipeline' | 'projects' | 'github' | 'review'>('code');
@@ -1268,26 +1277,28 @@ module.exports = app;`;
       };
 
       // Push code to repository
-      const branchName = await backendAPI.pushCode(
+      const prDetails = await backendAPI.pushCode(
         githubConfig.token,
-        githubConfig,
-        generatedCode,
+        githubConfig.owner,
+        githubConfig.repo,
+        githubConfig.branch || 'main',
+        [generatedCode],
         `AI-generated: ${projectConfig.projectName}`
       );
 
-      addToTerminal(`📤 Code pushed to branch: ${branchName}`);
+      addToTerminal(`📤 Code pushed to branch: ${prDetails.branch}`);
 
       // Create pull request
-      const prDetails = await backendAPI.createPR(
+      const prDetailsCreate = await backendAPI.createPR(
         githubConfig.token,
         githubConfig,
-        branchName,
+        prDetails.branch,
         `Add ${projectConfig.projectName}`,
         `AI-generated application: ${projectConfig.description}`,
         generatedCode
       );
 
-      addToTerminal(`🔄 Pull request created: #${prDetails.number}`);
+      addToTerminal(`🔄 Pull request created: #${prDetailsCreate.number}`);
       addToTerminal(`🔗 URL: ${prDetails.url}`);
 
     } catch (error) {
@@ -1327,6 +1338,41 @@ module.exports = app;`;
           />
         )}
 
+        {/* Authentication Modal */}
+        {showAuthModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-2">
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="float-right text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+                <div className="clear-both pt-2">
+                  {authMode === 'login' && (
+                    <Login
+                      onSuccess={() => setShowAuthModal(false)}
+                      onSwitchToRegister={() => setAuthMode('register')}
+                    />
+                  )}
+                  {authMode === 'register' && (
+                    <Register
+                      onSuccess={() => setShowAuthModal(false)}
+                      onSwitchToLogin={() => setAuthMode('login')}
+                    />
+                  )}
+                  {authMode === 'profile' && (
+                    <Profile
+                      onClose={() => setShowAuthModal(false)}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced Professional Header */}
         <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="px-6 py-4">
@@ -1363,9 +1409,49 @@ module.exports = app;`;
                 </div>
               </div>
 
-              {/* Theme Toggle */}
+              {/* Theme Toggle and Authentication */}
               <div className="flex items-center space-x-2">
                 <ThemeToggle isDarkMode={isDarkMode} onToggle={(value) => setIsDarkMode(value)} />
+                
+                {/* Authentication */}
+                {isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      setAuthMode('profile');
+                      setShowAuthModal(true);
+                    }}
+                    className="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    title="View Profile"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {user?.profile?.firstName?.[0]?.toUpperCase() || user?.username[0]?.toUpperCase()}
+                    </div>
+                    <span className="hidden sm:inline text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {user?.profile?.firstName || user?.username}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        setAuthMode('login');
+                        setShowAuthModal(true);
+                      }}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthMode('register');
+                        setShowAuthModal(true);
+                      }}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1603,14 +1689,50 @@ module.exports = app;`;
 
           {currentView === 'projects' && (
             <div className="flex-1 p-6 overflow-y-auto">
-              <ProjectManagement
-                projects={projects}
-                currentProject={currentProject}
-                onProjectSelect={handleProjectSelect}
-                onProjectCreate={handleProjectCreate}
-                onProjectLoad={handleProjectLoad}
-                onProjectDelete={handleProjectDelete}
-              />
+              {isAuthenticated ? (
+                <ProjectManagement
+                  projects={projects}
+                  currentProject={currentProject}
+                  onProjectSelect={handleProjectSelect}
+                  onProjectCreate={handleProjectCreate}
+                  onProjectLoad={handleProjectLoad}
+                  onProjectDelete={handleProjectDelete}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center max-w-md">
+                    <div className="mb-6">
+                      <i className="fas fa-lock text-6xl text-gray-400 dark:text-gray-600"></i>
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                      Authentication Required
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                      Please sign in to access your projects and create new ones.
+                    </p>
+                    <div className="space-x-4">
+                      <button
+                        onClick={() => {
+                          setAuthMode('login');
+                          setShowAuthModal(true);
+                        }}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAuthMode('register');
+                          setShowAuthModal(true);
+                        }}
+                        className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-medium rounded-lg transition-colors"
+                      >
+                        Sign Up
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

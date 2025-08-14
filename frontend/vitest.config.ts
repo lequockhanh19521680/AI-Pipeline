@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -11,7 +12,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@shared': '/home/runner/work/AI-Pipeline/AI-Pipeline/shared',
+      '@shared': path.resolve(__dirname, '../shared'),
     },
   },
 });

@@ -34,6 +34,10 @@ logs/
 # TypeScript
 *.tsbuildinfo
 
+# Python cache files
+*.pyc
+__pycache__/
+
 # Playwright
 /tmp/
 test-results/

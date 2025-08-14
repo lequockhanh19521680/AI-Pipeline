@@ -112,4 +112,67 @@ router.post('/stop/:id', async (req, res) => {
   }
 });
 
+// Get pipeline executions with pagination and filtering
+router.get('/executions', async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      status, 
+      projectId, 
+      ownerId 
+    } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const query: any = {};
+    
+    // Add filters
+    if (status) {
+      query.status = status;
+    }
+    if (projectId) {
+      query.projectId = projectId;
+    }
+    if (ownerId) {
+      query.ownerId = ownerId;
+    }
+
+    // Import the model
+    const { PipelineExecution } = await import('../models/PipelineExecution');
+
+    // Get executions with pagination
+    const [executions, total] = await Promise.all([
+      PipelineExecution.find(query)
+        .sort({ startTime: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      PipelineExecution.countDocuments(query)
+    ]);
+
+    const totalPages = Math.ceil(total / Number(limit));
+
+    res.json({
+      success: true,
+      data: {
+        executions,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages,
+          hasNextPage: Number(page) < totalPages,
+          hasPreviousPage: Number(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching pipeline executions:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch pipeline executions'
+    });
+  }
+});
+
 export default router;

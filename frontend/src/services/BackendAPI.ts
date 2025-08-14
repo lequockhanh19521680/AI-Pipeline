@@ -92,15 +92,17 @@ class BackendAPIService implements BackendAPI {
 
   async pushCode(
     token: string, 
-    config: GitHubConfig, 
-    generatedCode: GeneratedCode, 
+    owner: string, 
+    repo: string, 
+    branch: string, 
+    files: GeneratedCode[], 
     commitMessage: string
-  ): Promise<string> {
-    const response = await this.request<{ branchName: string }>('/github/push-code', {
+  ): Promise<PRDetails> {
+    const response = await this.request<PRDetails>('/github/push-code', {
       method: 'POST',
-      body: JSON.stringify({ token, config, generatedCode, commitMessage }),
+      body: JSON.stringify({ token, owner, repo, branch, files, commitMessage }),
     });
-    return response.branchName;
+    return response;
   }
 
   async createPR(
@@ -139,6 +141,93 @@ class BackendAPIService implements BackendAPI {
     } catch {
       return false;
     }
+  }
+
+  // Authentication methods
+  async login(username: string, password: string): Promise<{ user: any; token: string }> {
+    const response = await this.request<{ data: { user: any; token: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    return response.data;
+  }
+
+  async register(userData: {
+    username: string;
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+  }): Promise<{ user: any; token: string }> {
+    const response = await this.request<{ data: { user: any; token: string } }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return response.data;
+  }
+
+  async updateProfile(token: string, profileData: {
+    firstName?: string;
+    lastName?: string;
+    preferences?: {
+      theme?: 'light' | 'dark';
+      notifications?: boolean;
+    };
+  }): Promise<any> {
+    const response = await this.request<{ data: any }>('/auth/profile', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData),
+    });
+    return response.data;
+  }
+
+  async getCurrentUser(token: string): Promise<any> {
+    const response = await this.request<{ data: any }>('/auth/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    });
+    return response.data;
+  }
+
+  // Pipeline execution methods
+  async getPipelineExecutions(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    projectId?: string;
+    ownerId?: string;
+  } = {}): Promise<{
+    executions: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    const response = await this.request<{
+      data: {
+        executions: any[];
+        pagination: any;
+      };
+    }>(`/pipeline/executions?${queryParams.toString()}`);
+    
+    return response.data;
   }
 }
 
