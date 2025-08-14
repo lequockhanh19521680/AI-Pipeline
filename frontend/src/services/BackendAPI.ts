@@ -12,8 +12,9 @@ import {
 class BackendAPIService implements BackendAPI {
   private baseURL: string;
 
-  constructor(baseURL = 'http://localhost:3001/api') {
-    this.baseURL = baseURL;
+  constructor(baseURL?: string) {
+    // Use environment variable with fallback to localhost
+    this.baseURL = baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

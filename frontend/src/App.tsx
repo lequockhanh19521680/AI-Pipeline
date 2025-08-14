@@ -477,13 +477,13 @@ const App: React.FC = () => {
     addToTerminal('🔧 Code refinements applied based on QA feedback');
   };
 
-  const downloadProject = (): void => {
+  const downloadProject = async (): Promise<void> => {
     if (!projectConfig) {
       addToTerminal('❌ No project to download');
       return;
     }
     
-    const success = downloadProjectAsZip(files, projectConfig.projectName);
+    const success = await downloadProjectAsZip(files, projectConfig.projectName);
     if (success) {
       addToTerminal(`📦 Project "${projectConfig.projectName}" downloaded successfully!`);
       addToTerminal('🚀 Extract and run "npm install" to get started');
