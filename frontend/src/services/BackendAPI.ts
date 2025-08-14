@@ -142,6 +142,57 @@ class BackendAPIService implements BackendAPI {
       return false;
     }
   }
+
+  // Authentication methods
+  async login(username: string, password: string): Promise<{ user: any; token: string }> {
+    const response = await this.request<{ data: { user: any; token: string } }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    return response.data;
+  }
+
+  async register(userData: {
+    username: string;
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+  }): Promise<{ user: any; token: string }> {
+    const response = await this.request<{ data: { user: any; token: string } }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return response.data;
+  }
+
+  async updateProfile(token: string, profileData: {
+    firstName?: string;
+    lastName?: string;
+    preferences?: {
+      theme?: 'light' | 'dark';
+      notifications?: boolean;
+    };
+  }): Promise<any> {
+    const response = await this.request<{ data: any }>('/auth/profile', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData),
+    });
+    return response.data;
+  }
+
+  async getCurrentUser(token: string): Promise<any> {
+    const response = await this.request<{ data: any }>('/auth/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    });
+    return response.data;
+  }
 }
 
 // Create singleton instance
