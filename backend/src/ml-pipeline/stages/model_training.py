@@ -24,11 +24,49 @@ def load_config(config_file, stage_id):
 
 def determine_problem_type(y_train):
     """Determine if this is a classification or regression problem"""
-    unique_values = len(np.unique(y_train))
-    if unique_values <= 20 and y_train.dtype in ['int64', 'object']:
-        return 'classification'
-    else:
+    
+    # Check data type first
+    data_type = str(y_train.dtype)
+    
+    # Floating-point data types → always regression
+    if data_type.startswith('float') or 'float' in data_type:
+        print(f"🔍 Problem type: regression (floating-point target: {data_type})")
         return 'regression'
+    
+    # Get unique values and sample size
+    unique_values = np.unique(y_train)
+    n_unique = len(unique_values)
+    n_samples = len(y_train)
+    unique_ratio = n_unique / n_samples
+    
+    print(f"🔍 Target analysis: {n_unique} unique values, {n_samples} samples, ratio: {unique_ratio:.3f}")
+    
+    # For integer/object types, use more nuanced heuristics
+    if data_type in ['int64', 'int32', 'object', 'category']:
+        
+        # Very few unique values → classification
+        if n_unique <= 10:
+            print(f"🔍 Problem type: classification (few unique values: {n_unique})")
+            return 'classification'
+        
+        # Many unique values → likely regression
+        elif n_unique > 50:
+            print(f"🔍 Problem type: regression (many unique values: {n_unique})")
+            return 'regression'
+        
+        # Medium number of unique values → use ratio heuristic
+        else:
+            # High unique-to-sample ratio for integers → likely regression
+            if unique_ratio > 0.5:
+                print(f"🔍 Problem type: regression (high unique ratio: {unique_ratio:.3f})")
+                return 'regression'
+            else:
+                print(f"🔍 Problem type: classification (low unique ratio: {unique_ratio:.3f})")
+                return 'classification'
+    
+    # Default fallback
+    print(f"🔍 Problem type: classification (default for type: {data_type})")
+    return 'classification'
 
 def get_model(model_config, problem_type):
     """Get the appropriate model based on configuration"""
