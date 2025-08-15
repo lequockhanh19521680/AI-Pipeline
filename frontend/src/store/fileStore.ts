@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { FileMap } from '../types';
+import { FileMap, FileNode } from '../types';
 import { initialFiles } from '../data';
 
 interface FileState {
   files: FileMap;
+  unsavedFiles: Set<string>; // Track files with unsaved changes
   
   // Actions
   updateFile: (filename: string, content: string) => void;
@@ -13,11 +14,16 @@ interface FileState {
   getFile: (filename: string) => string | undefined;
   getFileList: () => string[];
   hasFile: (filename: string) => boolean;
+  markFileAsUnsaved: (filename: string) => void;
+  markFileAsSaved: (filename: string) => void;
+  isFileUnsaved: (filename: string) => boolean;
+  getFileTree: () => FileNode[];
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
   // Initial state
   files: initialFiles,
+  unsavedFiles: new Set<string>(),
 
   // Actions
   updateFile: (filename: string, content: string) => {
@@ -25,7 +31,8 @@ export const useFileStore = create<FileState>((set, get) => ({
       files: {
         ...state.files,
         [filename]: content
-      }
+      },
+      unsavedFiles: new Set([...state.unsavedFiles, filename])
     }));
   },
 
@@ -46,7 +53,9 @@ export const useFileStore = create<FileState>((set, get) => ({
     set(state => {
       const newFiles = { ...state.files };
       delete newFiles[filename];
-      return { files: newFiles };
+      const newUnsavedFiles = new Set(state.unsavedFiles);
+      newUnsavedFiles.delete(filename);
+      return { files: newFiles, unsavedFiles: newUnsavedFiles };
     });
   },
 
@@ -60,5 +69,68 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   hasFile: (filename: string) => {
     return filename in get().files;
+  },
+
+  markFileAsUnsaved: (filename: string) => {
+    set(state => ({
+      unsavedFiles: new Set([...state.unsavedFiles, filename])
+    }));
+  },
+
+  markFileAsSaved: (filename: string) => {
+    set(state => {
+      const newUnsavedFiles = new Set(state.unsavedFiles);
+      newUnsavedFiles.delete(filename);
+      return { unsavedFiles: newUnsavedFiles };
+    });
+  },
+
+  isFileUnsaved: (filename: string) => {
+    return get().unsavedFiles.has(filename);
+  },
+
+  getFileTree: () => {
+    const files = get().files;
+    const fileList = Object.keys(files);
+    
+    // Convert flat file list to hierarchical structure
+    const tree: FileNode[] = [];
+    const folderMap = new Map<string, FileNode>();
+    
+    fileList.forEach(filePath => {
+      const parts = filePath.split('/');
+      let currentLevel = tree;
+      let currentPath = '';
+      
+      parts.forEach((part, index) => {
+        currentPath += (currentPath ? '/' : '') + part;
+        const isFile = index === parts.length - 1;
+        
+        if (isFile) {
+          // Add file
+          currentLevel.push({
+            name: part,
+            type: 'file',
+            path: currentPath
+          });
+        } else {
+          // Add or find folder
+          let folder = currentLevel.find(node => node.name === part && node.type === 'folder');
+          if (!folder) {
+            folder = {
+              name: part,
+              type: 'folder',
+              children: [],
+              path: currentPath
+            };
+            currentLevel.push(folder);
+            folderMap.set(currentPath, folder);
+          }
+          currentLevel = folder.children!;
+        }
+      });
+    });
+    
+    return tree;
   }
 }));

@@ -18,6 +18,8 @@ import AICodeReviewAssistant from './components/AICodeReviewAssistant';
 import Login from './components/Login';
 import Register from './components/Register';
 import Profile from './components/Profile';
+import WelcomeScreen from './components/WelcomeScreen';
+import { ToastProvider } from './components/ToastProvider';
 import GeminiService from './services/GeminiService';
 import backendAPI from './services/BackendAPI';
 import webSocketManager from './services/WebSocketManager';
@@ -287,7 +289,8 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen flex flex-col">
+      <ToastProvider>
+        <div className="h-screen flex flex-col">
         {/* Modals */}
         <ProjectInput 
           onProjectSubmit={handleProjectSubmit}
@@ -508,7 +511,10 @@ const App: React.FC = () => {
         {/* Main Content Area - Dual View System */}
         <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
           {/* Render different views based on currentView */}
-          {currentView === 'code' && (
+          {currentView === 'code' && !projectConfig && (
+            <WelcomeScreen />
+          )}
+          {currentView === 'code' && projectConfig && (
             <>
               {/* Sidebar */}
               <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -790,6 +796,7 @@ const App: React.FC = () => {
           )}
         </div>
       </div>
+      </ToastProvider>
     </ErrorBoundary>
   );
 };
