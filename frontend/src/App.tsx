@@ -19,7 +19,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Profile from './components/Profile';
 import WelcomeScreen from './components/WelcomeScreen';
-import { ToastProvider, useToast } from './components/ToastProvider';
+import { ToastProvider } from './components/ToastProvider';
 import GeminiService from './services/GeminiService';
 import backendAPI from './services/BackendAPI';
 import webSocketManager from './services/WebSocketManager';
@@ -290,68 +290,7 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </ErrorBoundary>
-  );
-};
-
-const AppContent: React.FC = () => {
-  const toast = useToast();
-  const [geminiApiKey, setGeminiApiKey] = useState<string>('');
-  const [geminiService, setGeminiService] = useState<GeminiService | null>(null);
-  const [githubConfig, setGitHubConfig] = useState<import('@shared/interfaces/api').GitHubConfig | null>(null);
-  
-  // Use new store hooks and custom hooks
-  const { isAuthenticated, user } = useAuthStore();
-  const { 
-    isDarkMode, 
-    currentFile, 
-    openTabs,
-    terminalOutput,
-    showProjectInput,
-    showPreview, 
-    showBackendStatus,
-    showAuthModal,
-    showStageDetail,
-    showProjectManagement,
-    showGitHubIntegration,
-    currentView,
-    pipelineView,
-    authMode,
-    backendConnected,
-    setTheme,
-    addTerminalMessage,
-    openTab,
-    closeTab,
-    setCurrentFile,
-    togglePanel,
-    setPanel,
-    setCurrentView,
-    setPipelineView,
-    setAuthMode,
-    setBackendConnected
-  } = useUIStore();
-  
-  const { files, updateFile } = useFileStore();
-  const { projects, currentProject, setCurrentProject } = useProjectsStore();
-  
-  const {
-    projectConfig,
-    runPipeline: runSoftwarePipeline,
-    handleProjectSubmit,
-    downloadProject,
-    resetPipeline: resetSoftwarePipeline
-  } = useSoftwarePipeline();
-  
-  const {
-    mlPipelineStages,
-    currentMLPipeline,
-    selectedStage,
-    runMLPipeline,
-    handleStageClick,
-    setShowStageDetail: setMLStageDetail
-  } = useMLPipeline();
+        <div className="h-screen flex flex-col">
         {/* Modals */}
         <ProjectInput 
           onProjectSubmit={handleProjectSubmit}
@@ -572,7 +511,10 @@ const AppContent: React.FC = () => {
         {/* Main Content Area - Dual View System */}
         <div className="flex-1 flex overflow-hidden bg-gray-50 dark:bg-gray-900">
           {/* Render different views based on currentView */}
-          {currentView === 'code' && (
+          {currentView === 'code' && !projectConfig && (
+            <WelcomeScreen />
+          )}
+          {currentView === 'code' && projectConfig && (
             <>
               {/* Sidebar */}
               <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -854,6 +796,7 @@ const AppContent: React.FC = () => {
           )}
         </div>
       </div>
+      </ToastProvider>
     </ErrorBoundary>
   );
 };

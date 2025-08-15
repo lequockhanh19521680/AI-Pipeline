@@ -21,9 +21,15 @@ import backendAPI from '../services/BackendAPI';
 
 // Custom node types
 const InputNode: React.FC<{ data: any }> = ({ data }) => (
-  <div className="px-4 py-2 shadow-md rounded-md bg-blue-100 border-2 border-blue-500">
-    <div className="flex items-center">
-      <div className="ml-2">
+  <div className="px-4 py-3 shadow-md rounded-md bg-blue-100 border-2 border-blue-500 relative min-w-[150px]">
+    {/* Icon */}
+    <div className="absolute top-2 left-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke="#1e40af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+    <div className="flex items-center ml-4">
+      <div>
         <div className="text-lg font-bold text-blue-900">{data.label}</div>
         <div className="text-sm text-blue-700">{data.type}</div>
       </div>
@@ -32,9 +38,15 @@ const InputNode: React.FC<{ data: any }> = ({ data }) => (
 );
 
 const ProcessingNode: React.FC<{ data: any }> = ({ data }) => (
-  <div className="px-4 py-2 shadow-md rounded-md bg-green-100 border-2 border-green-500">
-    <div className="flex items-center">
-      <div className="ml-2">
+  <div className="px-4 py-3 shadow-md rounded-md bg-green-100 border-2 border-green-500 relative min-w-[150px]">
+    {/* Icon */}
+    <div className="absolute top-2 left-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" stroke="#166534" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+    <div className="flex items-center ml-4">
+      <div>
         <div className="text-lg font-bold text-green-900">{data.label}</div>
         <div className="text-sm text-green-700">{data.type}</div>
         {data.aiSuggestions && (
@@ -48,9 +60,16 @@ const ProcessingNode: React.FC<{ data: any }> = ({ data }) => (
 );
 
 const AINode: React.FC<{ data: any }> = ({ data }) => (
-  <div className="px-4 py-2 shadow-md rounded-md bg-purple-100 border-2 border-purple-500">
-    <div className="flex items-center">
-      <div className="ml-2">
+  <div className="px-4 py-3 shadow-md rounded-md bg-purple-100 border-2 border-purple-500 relative min-w-[150px]">
+    {/* Icon */}
+    <div className="absolute top-2 left-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="9" r="2" stroke="#7c3aed" strokeWidth="2"/>
+      </svg>
+    </div>
+    <div className="flex items-center ml-4">
+      <div>
         <div className="text-lg font-bold text-purple-900">{data.label}</div>
         <div className="text-sm text-purple-700">🤖 AI Processing</div>
         {data.config?.model && (
@@ -64,9 +83,15 @@ const AINode: React.FC<{ data: any }> = ({ data }) => (
 );
 
 const OutputNode: React.FC<{ data: any }> = ({ data }) => (
-  <div className="px-4 py-2 shadow-md rounded-md bg-orange-100 border-2 border-orange-500">
-    <div className="flex items-center">
-      <div className="ml-2">
+  <div className="px-4 py-3 shadow-md rounded-md bg-orange-100 border-2 border-orange-500 relative min-w-[150px]">
+    {/* Icon */}
+    <div className="absolute top-2 left-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-4 4z" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+    <div className="flex items-center ml-4">
+      <div>
         <div className="text-lg font-bold text-orange-900">{data.label}</div>
         <div className="text-sm text-orange-700">{data.type}</div>
       </div>
@@ -499,7 +524,7 @@ export const AdvancedPipelineBuilder: React.FC<AdvancedPipelineBuilderProps> = (
 
       {/* Properties Panel */}
       {showPropertyPanel && selectedNode && (
-        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto animate-slide-in-right">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Node Properties</h3>
             <button
