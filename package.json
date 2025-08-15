@@ -5,18 +5,33 @@
   "type": "module",
   "workspaces": [
     "frontend",
-    "backend"
+    "backend", 
+    "packages/*",
+    "services/*",
+    "frontend/shell",
+    "frontend/auth-mf",
+    "frontend/project-mf",
+    "frontend/workspace-mf"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:micro": "concurrently \"npm run dev:services\" \"npm run dev:frontends\"",
+    "dev:services": "concurrently \"npm run dev -w @ai-pipeline/api-gateway\" \"npm run dev -w @ai-pipeline/auth-service\" \"npm run dev -w @ai-pipeline/project-service\" \"npm run dev -w @ai-pipeline/github-service\"",
+    "dev:frontends": "npm run dev --workspace=frontend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "build": "npm run build --workspaces",
+    "build:services": "npm run build --workspaces --workspace=services/*",
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
+    "build:shared": "npm run build --workspace=packages/shared",
     "install:all": "npm install --workspaces",
     "type-check": "npm run type-check --workspaces",
-    "clean": "rm -rf frontend/dist backend/dist frontend/node_modules backend/node_modules node_modules"
+    "clean": "rm -rf frontend/dist backend/dist frontend/node_modules backend/node_modules node_modules services/*/dist packages/*/dist",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -4,6 +4,7 @@
     "module": "ES2022",
     "moduleResolution": "node",
     "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -14,16 +15,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "allowImportingTsExtensions": false,
-    "noEmit": false,
-    "types": ["node", "jest"],
-    "paths": {
-      "@shared/*": ["../shared/*"]
-    }
+    "noEmit": false
   },
-  "include": ["src/**/*", "../shared/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
