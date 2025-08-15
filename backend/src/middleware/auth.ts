@@ -1,16 +1,16 @@
-import jwt from 'jsonwebtoken';
-import { Request, Response, NextFunction } from 'express';
-import { User, IUser } from '../models/User.js';
-import './types/express.js';
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+import { User, IUser } from "../models/User.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
 }
 
 export const generateToken = (userId: string): string => {
-  const secret = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  
+  const secret =
+    process.env.JWT_SECRET || "fallback-secret-change-in-production";
+  const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+
   return jwt.sign({ userId }, secret, { expiresIn } as jwt.SignOptions);
 };
 
@@ -20,25 +20,26 @@ export const authenticateToken = async (
   next: NextFunction
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
   if (!token) {
     res.status(401).json({
       success: false,
-      error: 'Access token required'
+      error: "Access token required",
     });
     return;
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+    const secret =
+      process.env.JWT_SECRET || "fallback-secret-change-in-production";
     const decoded = jwt.verify(token, secret) as { userId: string };
-    
+
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
       res.status(401).json({
         success: false,
-        error: 'Invalid or expired token'
+        error: "Invalid or expired token",
       });
       return;
     }
@@ -48,7 +49,7 @@ export const authenticateToken = async (
   } catch (error) {
     res.status(403).json({
       success: false,
-      error: 'Invalid token'
+      error: "Invalid token",
     });
   }
 };
@@ -61,13 +62,14 @@ export const optionalAuth = async (
   next: NextFunction
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (token) {
     try {
-      const secret = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+      const secret =
+        process.env.JWT_SECRET || "fallback-secret-change-in-production";
       const decoded = jwt.verify(token, secret) as { userId: string };
-      
+
       const user = await User.findById(decoded.userId);
       if (user && user.isActive) {
         req.user = user;
