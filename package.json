@@ -5,10 +5,13 @@
   "type": "module",
   "workspaces": [
     "frontend",
-    "backend",
+    "backend", 
     "packages/*",
     "services/*",
-    "frontend/*"
+    "frontend/shell",
+    "frontend/auth-mf",
+    "frontend/project-mf",
+    "frontend/workspace-mf"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
