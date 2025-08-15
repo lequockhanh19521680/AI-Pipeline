@@ -72,7 +72,8 @@ export interface EditorProps {
 }
 
 export interface FileTreeProps {
-  files: string[];
+  files: string[]; // Legacy flat file list
+  fileTree?: FileNode[]; // New hierarchical structure  
   currentFile: string;
   onFileSelect: (file: string) => void;
   className?: string;
@@ -206,6 +207,13 @@ export interface ProjectMetadata {
 
 export interface FileMap {
   [filename: string]: string;
+}
+
+export interface FileNode {
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+  path?: string;
 }
 
 export interface PipelineConfig {
