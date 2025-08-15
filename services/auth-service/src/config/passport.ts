@@ -3,12 +3,17 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { User, IUser } from '../models/User.js';
 
+// Only configure OAuth strategies if credentials are available
+const hasGitHubCredentials = process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET;
+const hasGoogleCredentials = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+
 // GitHub OAuth Strategy
-passport.use(new GitHubStrategy({
-  clientID: process.env.GITHUB_CLIENT_ID || '',
-  clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-  callbackURL: "/api/auth/github/callback"
-}, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+if (hasGitHubCredentials) {
+  passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    callbackURL: "/api/auth/github/callback"
+  }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
     // Check if user already exists with GitHub ID
     let user = await User.findOne({ 'oauth.providers.github.id': profile.id });
@@ -73,13 +78,17 @@ passport.use(new GitHubStrategy({
     return done(error, null);
   }
 }));
+} else {
+  console.warn('⚠️  GitHub OAuth disabled: Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET');
+}
 
 // Google OAuth Strategy
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID || '',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-  callbackURL: "/api/auth/google/callback"
-}, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+if (hasGoogleCredentials) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    callbackURL: "/api/auth/google/callback"
+  }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
   try {
     // Check if user already exists with Google ID
     let user = await User.findOne({ 'oauth.providers.google.id': profile.id });
@@ -144,6 +153,9 @@ passport.use(new GoogleStrategy({
     return done(error, null);
   }
 }));
+} else {
+  console.warn('⚠️  Google OAuth disabled: Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+}
 
 // Serialize/Deserialize user for sessions (optional, mainly for OAuth)
 passport.serializeUser((user: any, done) => {
