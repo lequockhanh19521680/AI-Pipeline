@@ -1,4 +1,4 @@
-// Backend types for AI Pipeline IDE
+// Pipeline Service types
 export interface MLPipelineStage {
   id: string;
   name: string;
@@ -31,49 +31,9 @@ export interface PipelineExecution {
   results: any;
 }
 
-export interface GitHubConfig {
-  token: string;
-  owner: string;
-  repo: string;
-  branch?: string;
-}
-
-export interface PRDetails {
-  number: number;
-  url: string;
-  title: string;
-  description: string;
-  branch: string;
-}
-
-export interface RepoStructure {
-  name: string;
-  fullName: string;
-  description: string;
-  language: string;
-  structure: FileNode[];
-}
-
-export interface FileNode {
-  name: string;
-  type: 'file' | 'directory';
-  path: string;
-  children?: FileNode[];
-}
-
-export interface GeneratedCode {
-  files: { [path: string]: string };
-  structure: FileNode[];
-  metadata: {
-    projectType: string;
-    techStack: string[];
-    description: string;
-  };
-}
-
 // WebSocket event types
 export interface PipelineEvent {
-  type: 'stage-start' | 'stage-complete' | 'stage-error' | 'pipeline-complete' | 'log';
+  type: 'stage_start' | 'stage_complete' | 'stage_failed' | 'pipeline_completed' | 'log';
   pipelineId: string;
   stageId?: string;
   data: any;
@@ -85,4 +45,19 @@ export interface LogEvent {
   message: string;
   timestamp: Date;
   stage?: string;
+}
+
+// Job types for queue processing
+export interface PipelineJob {
+  id: string;
+  pipelineId: string;
+  stage: MLPipelineStage;
+  config: MLPipelineConfig;
+}
+
+export interface JobResult {
+  success: boolean;
+  output?: any;
+  logs: string[];
+  artifacts?: string[];
 }

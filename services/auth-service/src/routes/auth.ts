@@ -265,11 +265,23 @@ router.post('/change-password', requireAuth,
 // OAuth Routes
 
 // GitHub OAuth
-router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+router.get('/github', (req: Request, res: Response) => {
+  if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub OAuth is not configured'
+    });
+  }
+  passport.authenticate('github', { scope: ['user:email'] })(req, res);
+});
 
-router.get('/github/callback', 
-  passport.authenticate('github', { session: false, failureRedirect: '/login?error=github_auth_failed' }),
-  (req: Request, res: Response) => {
+router.get('/github/callback', (req: Request, res: Response, next) => {
+  if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+    return res.redirect('/login?error=github_oauth_disabled');
+  }
+  
+  passport.authenticate('github', { session: false, failureRedirect: '/login?error=github_auth_failed' })(req, res, next);
+}, (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       const token = generateToken(user._id.toString());
@@ -285,11 +297,23 @@ router.get('/github/callback',
 );
 
 // Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req: Request, res: Response) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      error: 'Google OAuth is not configured'
+    });
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res);
+});
 
-router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
-  (req: Request, res: Response) => {
+router.get('/google/callback', (req: Request, res: Response, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.redirect('/login?error=google_oauth_disabled');
+  }
+  
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' })(req, res, next);
+}, (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       const token = generateToken(user._id.toString());

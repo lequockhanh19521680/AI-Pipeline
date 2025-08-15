@@ -17,9 +17,14 @@ class ProjectsService implements ProjectAPI {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // Get auth token from localStorage
+    const token = localStorage.getItem('auth_token');
+    
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
