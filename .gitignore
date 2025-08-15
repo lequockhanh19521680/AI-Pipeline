@@ -41,3 +41,21 @@ __pycache__/
 # Playwright
 /tmp/
 test-results/
+# Docker
+.dockerignore
+
+# Coverage reports
+coverage/
+
+# Microservices specific
+services/*/dist/
+services/*/logs/
+packages/*/dist/
+
+# Frontend builds
+frontend/*/dist/
+
+# Development artifacts
+*.pid
+*.seed
+*.pid.lock

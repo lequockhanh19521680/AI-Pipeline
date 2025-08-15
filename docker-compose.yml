@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: ai-pipeline-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: ai-pipeline
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongodb/init:/docker-entrypoint-initdb.d
+
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    container_name: ai-pipeline-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # API Gateway Service
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: ai-pipeline-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PROJECT_SERVICE_URL=http://project-service:3002
+      - GITHUB_SERVICE_URL=http://github-service:3003
+      - PIPELINE_SERVICE_URL=http://pipeline-service:3004
+    depends_on:
+      - auth-service
+      - project-service
+      - github-service
+      - pipeline-service
+    networks:
+      - ai-pipeline
+
+  # Authentication Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: ai-pipeline-auth-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017/ai-pipeline?authSource=admin
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - SESSION_SECRET=dev-session-secret-change-in-production
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FRONTEND_URL=http://localhost:5173
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ai-pipeline
+
+  # Project Service
+  project-service:
+    build:
+      context: .
+      dockerfile: services/project-service/Dockerfile
+    container_name: ai-pipeline-project-service
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017/ai-pipeline?authSource=admin
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - mongodb
+      - auth-service
+    networks:
+      - ai-pipeline
+
+  # GitHub Service
+  github-service:
+    build:
+      context: .
+      dockerfile: services/github-service/Dockerfile
+    container_name: ai-pipeline-github-service
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - auth-service
+    networks:
+      - ai-pipeline
+
+  # Pipeline Service
+  pipeline-service:
+    build:
+      context: .
+      dockerfile: services/pipeline-service/Dockerfile
+    container_name: ai-pipeline-pipeline-service
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017/ai-pipeline?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - mongodb
+      - redis
+      - auth-service
+    networks:
+      - ai-pipeline
+
+  # Frontend Shell Application
+  frontend-shell:
+    build:
+      context: .
+      dockerfile: frontend/shell/Dockerfile
+    container_name: ai-pipeline-frontend-shell
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+      - VITE_AUTH_MF_URL=http://localhost:3101
+      - VITE_PROJECT_MF_URL=http://localhost:3102
+      - VITE_WORKSPACE_MF_URL=http://localhost:3103
+    depends_on:
+      - api-gateway
+    networks:
+      - ai-pipeline
+
+  # Authentication Micro-frontend
+  frontend-auth:
+    build:
+      context: .
+      dockerfile: frontend/auth-mf/Dockerfile
+    container_name: ai-pipeline-frontend-auth
+    restart: unless-stopped
+    ports:
+      - "3101:3101"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+    networks:
+      - ai-pipeline
+
+  # Project Micro-frontend
+  frontend-project:
+    build:
+      context: .
+      dockerfile: frontend/project-mf/Dockerfile
+    container_name: ai-pipeline-frontend-project
+    restart: unless-stopped
+    ports:
+      - "3102:3102"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+    networks:
+      - ai-pipeline
+
+  # Workspace Micro-frontend
+  frontend-workspace:
+    build:
+      context: .
+      dockerfile: frontend/workspace-mf/Dockerfile
+    container_name: ai-pipeline-frontend-workspace
+    restart: unless-stopped
+    ports:
+      - "3103:3103"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
+    networks:
+      - ai-pipeline
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  ai-pipeline:
+    driver: bridge
