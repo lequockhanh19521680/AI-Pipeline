@@ -1,193 +1,382 @@
-# AI Pipeline IDE
+# 🤖 AI Pipeline IDE
 
-A modern, professional AI Pipeline IDE built with React, TailwindCSS, and Gemini API integration for complete client-side AI pipeline development.
+A modern, professional AI Pipeline IDE built with React, TypeScript, Node.js, and AI integration for complete full-stack AI pipeline development.
+
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)
+![React](https://img.shields.io/badge/React-18+-blue.svg)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 
 ## ✨ Features
 
-### 🎨 Modern React Architecture
+### 🏗️ Modern Architecture
+
+- **Workspace-based Structure**: Separate frontend and backend with shared types
+- **TypeScript ESM Support**: Full TypeScript ESM across the entire stack
+- **Hot Reload**: Real-time development for both frontend and backend
+- **Shared Types**: Consistent interfaces between frontend and backend
+- **WebSocket Integration**: Real-time collaboration and pipeline updates
+
+### 🎨 Frontend (React + TypeScript + Vite)
+
 - **Component-Based Design**: Modular React components with proper state management
-- **Professional Layout**: Clean, modern interface with responsive grid system
+- **Advanced Pipeline Builder**: Drag-drop pipeline creation with React Flow
+- **Minimalist Code Editor**: Split-view with Monaco Editor integration
+- **Professional Layout**: Clean, modern interface with responsive design
 - **Dark/Light Themes**: Toggle between dark and light modes seamlessly
-- **Smooth Animations**: Micro-interactions and loading states for better UX
 
-### 🔧 IDE Capabilities
-- **Code Editor**: Full-featured code editor with syntax highlighting
-- **File Management**: Interactive file tree with custom icons and multi-tab support
-- **Real-time Editing**: Live code editing with file synchronization
-- **Terminal Integration**: Built-in terminal interface for command execution
+### 🚀 Backend (Node.js + Express + TypeScript ESM)
 
-### 🤖 AI-Powered Pipeline Features
-- **Gemini Integration**: Complete client-side AI pipeline powered by Google's Gemini API
-- **Intelligent Analysis**: AI-powered code analysis, optimization, and debugging
-- **Pipeline Automation**: Automated pipeline execution with real-time monitoring
-- **AI Assistant**: Built-in AI assistant for code review, documentation, and optimization
+- **RESTful API**: Well-structured API endpoints for pipeline management
+- **WebSocket Server**: Real-time communication for pipeline execution
+- **Pipeline Engine**: Robust pipeline execution and monitoring
+- **ESM Module Support**: Modern ES modules with tsx runtime
 
-### 📱 Responsive Design
-- **Full-screen Layout**: Optimized for desktop development workflows
-- **Flexible Panels**: Resizable sidebar and interactive panels
-- **Cross-browser Compatibility**: Works across all modern browsers
+### 🤖 AI-Powered Features
 
-## 🚀 Getting Started
+- **AI Intelligence**: Real-time code analysis and intelligent suggestions
+- **Pipeline Templates**: Pre-built templates for common AI/ML use cases
+- **Automated Pipeline Execution**: Smart execution with real-time monitoring
+- **AI Assistant**: Built-in AI assistant for code review and optimization
+
+### 📱 Cross-Platform Compatibility
+
+- **Full-stack Development**: Complete development environment
+- **Cross-browser Support**: Works across all modern browsers
+- **Responsive Design**: Optimized for various screen sizes
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
-- A Google Gemini API key (get one at [Google AI Studio](https://makersuite.google.com/app/apikey))
+
+- **Node.js** 18+ and npm
+- **Git** for version control
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/lequockhanh19521680/AI-Pipeline.git
    cd AI-Pipeline
    ```
 
-2. **Install dependencies**
+2. **Install all dependencies**
+
    ```bash
    npm install
    ```
 
-3. **Start the development server**
+3. **Start development servers**
+
    ```bash
+   # Run both frontend and backend concurrently
    npm run dev
    ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:8080`
+4. **Access the application**
+   - **Frontend**: http://localhost:5173
+   - **Backend API**: http://localhost:3001
 
-### Configuration
-
-1. **Set up Gemini API Key**
-   - Click on "Configure" in the Gemini API section (sidebar)
-   - Enter your Gemini API key
-   - Click "Save" to store it locally
-
-2. **Start using the AI Pipeline**
-   - Edit your pipeline code in the editor
-   - Use the AI Assistant for code analysis and optimization
-   - Run the complete pipeline with Gemini integration
-
-## 🛠️ Development
-
-### Build System
-- **Vite**: Fast development server and build tool
-- **React**: Component-based architecture
-- **TailwindCSS**: Utility-first CSS framework
-- **PostCSS**: CSS processing and optimization
-
-### Available Scripts
+### Alternative Development Commands
 
 ```bash
-# Start development server
-npm run dev
+# Run frontend only (React + Vite)
+npm run dev:frontend
+
+# Run backend only (Node.js + Express)
+npm run dev:backend
 
 # Build for production
 npm run build
 
-# Preview production build
-npm run preview
+# Type checking
+npm run type-check
 
-# Build CSS (if needed separately)
-npm run build-css
+# Clean build artifacts
+npm run clean
 ```
 
-### Project Structure
+## 🏗️ Project Structure
 
 ```
-src/
-├── components/          # React components
-│   ├── App.jsx         # Main application component
-│   ├── FileTree.jsx    # File explorer component
-│   ├── Editor.jsx      # Code editor component
-│   ├── Terminal.jsx    # Terminal and output component
-│   ├── Pipeline.jsx    # Pipeline status and controls
-│   ├── ThemeToggle.jsx # Dark/light mode toggle
-│   └── AIAssistant.jsx # AI-powered code assistant
-├── services/           # API services
-│   └── GeminiService.js # Gemini API integration
-├── data.js            # Application data and constants
-├── index.css          # Global styles and Tailwind
-└── main.jsx           # React entry point
+AI-Pipeline/
+├── package.json              # Root workspace manager
+├── 📁 frontend/              # React + TypeScript + Vite
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   │   ├── AdvancedPipelineBuilder.tsx
+│   │   │   ├── MinimalistCodeEditor.tsx
+│   │   │   ├── AIIntelligenceFeatures.tsx
+│   │   │   └── PipelineTemplates.tsx
+│   │   ├── services/         # API services
+│   │   ├── types/           # Frontend types
+│   │   └── main.tsx
+│   └── dist/                # Build output
+├── 📁 backend/               # Node.js + Express + TypeScript ESM
+│   ├── package.json
+│   ├── src/
+│   │   ├── routes/          # API routes
+│   │   ├── services/        # Business logic
+│   │   ├── websocket/       # WebSocket handlers
+│   │   ├── types/          # Backend types
+│   │   └── server.ts
+│   └── dist/               # Build output
+├── 📁 shared/              # Common types and interfaces
+│   ├── types/
+│   └── interfaces/
+└── 📁 docs/               # Documentation
 ```
+
+## 🔗 API Endpoints
+
+### REST API
+
+| Method | Endpoint                   | Description            |
+| ------ | -------------------------- | ---------------------- |
+| `GET`  | `/api/health`              | Health check           |
+| `POST` | `/api/pipeline/create`     | Create new pipeline    |
+| `POST` | `/api/pipeline/execute`    | Execute pipeline       |
+| `GET`  | `/api/pipeline/status/:id` | Get pipeline status    |
+| `GET`  | `/api/templates`           | Get pipeline templates |
+
+### WebSocket Events
+
+| Event            | Description                              |
+| ---------------- | ---------------------------------------- |
+| `join-pipeline`  | Join pipeline room for real-time updates |
+| `pipeline-event` | Pipeline execution events                |
+| `log`            | Real-time log streaming                  |
+| `collaboration`  | Real-time collaboration events           |
 
 ## 🤖 AI Features
 
-### Pipeline Stages
-The AI pipeline includes four main stages, all powered by Gemini:
+### Pipeline Builder
 
-1. **Data Ingestion**: AI-assisted data loading and validation
-2. **Processing**: Intelligent data processing and feature engineering
-3. **Model Training**: AI-optimized model training and evaluation
-4. **Deployment**: Smart deployment strategy and monitoring
+- **Drag & Drop Interface**: Visual pipeline creation with React Flow
+- **Node-based System**: Connect different processing nodes
+- **Real-time Validation**: Instant feedback on pipeline configuration
+- **Template Integration**: Use pre-built templates as starting points
 
-### AI Assistant Modes
-- **Analyze Code**: Get insights and suggestions for your code
-- **Optimize Config**: Receive optimization recommendations
-- **Debug Code**: AI-powered debugging and error resolution
-- **Generate Docs**: Automatic documentation generation
+### Code Editor
 
-### Gemini API Integration
-- **Client-side Processing**: No server required, runs entirely in browser
-- **Secure**: API key stored locally in browser
-- **Intelligent**: Context-aware responses based on your code and configuration
-- **Real-time**: Instant feedback and suggestions
+- **Monaco Editor**: VS Code-like editing experience
+- **Syntax Highlighting**: Support for Python, JavaScript, YAML, JSON
+- **IntelliSense**: Auto-completion and error detection
+- **Split View**: Side-by-side code and preview
 
-## 📋 Usage Examples
+### AI Intelligence
 
-### Basic Pipeline Execution
-1. Configure your Gemini API key
-2. Edit your pipeline code (Python/YAML/etc.)
-3. Click "Run Pipeline" to execute with AI assistance
-4. Monitor progress in real-time
+- **Code Analysis**: Real-time code quality analysis
+- **Smart Suggestions**: AI-powered optimization recommendations
+- **Error Detection**: Intelligent error detection and fixing
+- **Documentation Generation**: Automatic documentation creation
 
-### AI-Assisted Development
-1. Open the AI Assistant tab
-2. Select an analysis mode (Analyze, Optimize, Debug, or Document)
-3. Click "Run" to get AI-powered insights
-4. Apply suggestions directly to your code
+## 🛠️ Development
 
-### File Management
-- Click on files in the Project Explorer to open them
-- Use tabs to switch between multiple open files
-- Edit code with syntax highlighting and line numbers
-- All changes are auto-saved locally
+### Available Scripts
+
+```bash
+# Development
+npm run dev                # Start both frontend and backend
+npm run dev:frontend       # Start only frontend (port 5173)
+npm run dev:backend        # Start only backend (port 3001)
+
+# Building
+npm run build              # Build both frontend and backend
+npm run build:frontend     # Build only frontend
+npm run build:backend      # Build only backend
+
+# Type Checking
+npm run type-check         # Check TypeScript types
+npm run type-check:frontend
+npm run type-check:backend
+
+# Linting & Formatting
+npm run lint               # Lint all code
+npm run format             # Format all code
+
+# Testing
+npm run test               # Run all tests
+npm run test:frontend      # Run frontend tests
+npm run test:backend       # Run backend tests
+
+# Utilities
+npm run clean              # Clean build artifacts
+npm run preview            # Preview production build
+```
+
+### Development Workflow
+
+1. **Make Changes**: Edit files in `frontend/src/` or `backend/src/`
+2. **Hot Reload**: Changes automatically restart services
+3. **Type Safety**: Shared types ensure consistency
+4. **Testing**: Write tests for new features
+5. **Build**: Test production builds before deployment
+
+## 📚 Usage Examples
+
+### Creating a Pipeline
+
+1. Open the Advanced Pipeline Builder
+2. Drag nodes from the palette
+3. Connect nodes to create data flow
+4. Configure each node's parameters
+5. Save and execute the pipeline
+
+### Using AI Features
+
+1. Open the AI Intelligence panel
+2. Select analysis type (Analyze, Optimize, Debug)
+3. Get AI-powered insights and suggestions
+4. Apply recommendations to improve your code
+
+### Real-time Collaboration
+
+1. Share your pipeline URL
+2. Multiple users can edit simultaneously
+3. See real-time changes and cursor positions
+4. Chat and discuss changes inline
 
 ## 🌐 Technology Stack
 
-- **Frontend**: React 18+ with hooks and modern patterns
-- **Styling**: TailwindCSS v3.3 with custom design system
-- **Build Tool**: Vite for fast development and builds
-- **AI Integration**: Google Gemini API for intelligent features
-- **Icons**: Font Awesome (embedded subset)
-- **Typography**: System fonts with monospace for code
+### Frontend
 
-## 🔒 Privacy & Security
+- **React 18+** - Component-based UI framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Fast build tool and dev server
+- **TailwindCSS** - Utility-first CSS framework
+- **React Flow** - Interactive node-based UIs
+- **Monaco Editor** - VS Code editor in browser
 
-- **Local Storage**: All data stored locally in your browser
-- **API Security**: Gemini API key stored securely in localStorage
-- **No Server**: Completely client-side application
-- **No Data Transmission**: Your code never leaves your device except for AI analysis
+### Backend
+
+- **Node.js 18+** - JavaScript runtime
+- **Express** - Web application framework
+- **TypeScript ESM** - Modern ES modules
+- **Socket.io** - Real-time communication
+- **tsx** - TypeScript execution engine
+
+### DevOps & Tools
+
+- **npm Workspaces** - Monorepo management
+- **ESLint + Prettier** - Code quality and formatting
+- **Concurrently** - Run multiple processes
+- **Nodemon** - Auto-restart development server
+
+## 🔒 Security & Privacy
+
+- **Local Development**: All data stays on your machine during development
+- **Environment Variables**: Secure configuration management
+- **Type Safety**: Prevents common runtime errors
+- **Input Validation**: Proper validation on all API endpoints
+- **CORS Configuration**: Secure cross-origin requests
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+# Build both frontend and backend
+npm run build
+
+# The frontend build will be in frontend/dist/
+# The backend build will be in backend/dist/
+```
+
+### Deployment Options
+
+- **Frontend**: Deploy to Vercel, Netlify, or any static hosting
+- **Backend**: Deploy to Railway, Heroku, DigitalOcean, or AWS
+- **Full-stack**: Use Docker for containerized deployment
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with proper testing
-4. Commit your changes (`git commit -m 'Add amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Write tests for new features
+- Update documentation for API changes
+- Use conventional commit messages
+- Ensure type safety across frontend/backend
+
+## 📋 Roadmap
+
+### ✅ Completed
+
+- [x] Workspace-based architecture
+- [x] TypeScript ESM support
+- [x] Advanced pipeline builder
+- [x] Real-time WebSocket integration
+- [x] AI intelligence features
+
+### 🚧 In Progress
+
+- [ ] Pipeline template marketplace
+- [ ] Advanced AI model integration
+- [ ] Cloud deployment options
+- [ ] Performance optimization
+
+### 📅 Planned
+
+- [ ] Mobile responsive design
+- [ ] Plugin system
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+
+## 🆘 Support & Documentation
+
+- **Issues**: [GitHub Issues](https://github.com/lequockhanh19521680/AI-Pipeline/issues)
+- **Documentation**: [docs/README.md](docs/README.md)
+- **Discussions**: [GitHub Discussions](https://github.com/lequockhanh19521680/AI-Pipeline/discussions)
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Port conflicts**: Kill processes using ports 3001 or 5173
+2. **TypeScript errors**: Run `npm run type-check` to verify
+3. **Dependency issues**: Delete `node_modules` and run `npm install`
+4. **Build failures**: Clear `dist` folders and rebuild
+
+#### Getting Help
+
+- Check the [docs](docs/) folder for detailed documentation
+- Search existing [issues](https://github.com/lequockhanh19521680/AI-Pipeline/issues)
+- Create a new issue with detailed information
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🙏 Acknowledgments
 
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/lequockhanh19521680/AI-Pipeline/issues)
-- **Documentation**: Check this README for setup and usage instructions
-- **API Help**: Visit [Google AI Studio](https://makersuite.google.com/) for Gemini API documentation
+- React team for the amazing framework
+- Vite team for the lightning-fast build tool
+- TypeScript team for type safety
+- All contributors who make this project better
 
 ---
 
 **Built with ❤️ for the AI development community**
 
-*Empowering developers with AI-assisted pipeline development*
+_Empowering developers with modern AI pipeline development tools_
+
+## 📊 Project Stats
+
+![GitHub stars](https://img.shields.io/github/stars/lequockhanh19521680/AI-Pipeline)
+![GitHub forks](https://img.shields.io/github/forks/lequockhanh19521680/AI-Pipeline)
+![GitHub issues](https://img.shields.io/github/issues/lequockhanh19521680/AI-Pipeline)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/lequockhanh19521680/AI-Pipeline)
