@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [api-gateway, auth-service]
+        service: [api-gateway, auth-service, project-service, github-service]
     
     steps:
       - uses: actions/checkout@v4
@@ -78,7 +78,7 @@ jobs:
     if: github.event_name == 'push'
     strategy:
       matrix:
-        service: [api-gateway, auth-service]
+        service: [api-gateway, auth-service, project-service, github-service]
     
     steps:
       - uses: actions/checkout@v4

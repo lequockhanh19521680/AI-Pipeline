@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:micro": "concurrently \"npm run dev:services\" \"npm run dev:frontends\"",
-    "dev:services": "concurrently \"npm run dev -w @ai-pipeline/api-gateway\" \"npm run dev -w @ai-pipeline/auth-service\"",
+    "dev:services": "concurrently \"npm run dev -w @ai-pipeline/api-gateway\" \"npm run dev -w @ai-pipeline/auth-service\" \"npm run dev -w @ai-pipeline/project-service\" \"npm run dev -w @ai-pipeline/github-service\"",
     "dev:frontends": "npm run dev --workspace=frontend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
